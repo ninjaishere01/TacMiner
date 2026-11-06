@@ -128,6 +128,14 @@ def collect_gold(request):
         if amount > 0:
             user.balance += amount
             user.save()
+
+            # --- كود الإحالة الجديد (10% لصاحب الدعوة) ---
+            if user.referred_by:
+                referral_bonus = amount * Decimal('0.10') # 10%
+                referrer = user.referred_by
+                referrer.referral_balance += referral_bonus # بنضيف لرصيد الإحالة
+                referrer.save()
+            # ---------------------------------------------
         
         return Response({"message": "Collected!", "new_balance": float(user.balance)})
     
@@ -137,7 +145,7 @@ def collect_gold(request):
         # لو حصل أي خطأ تاني، هنطبعه في التيرمينال ونرجعه للفرونت
         print(f"ERROR in collect_gold: {e}")
         return Response({"error": str(e)}, status=500)
-
+    
 
 
 @api_view(['POST'])
