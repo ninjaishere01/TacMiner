@@ -1,0 +1,273 @@
+{% load static %}
+<!doctype html>
+<html lang="ar" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>سحب الأرباح - TAC Miner</title>
+    <link
+      rel="shortcut icon"
+      href="{% static 'logo-brand/one-logo.png' %}"
+      type="image/x-icon"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="{% static 'css/global.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/withdraw.css' %}" />
+  </head>
+  <body>
+    <header
+      class="top-header mt-3 px-3 d-flex justify-content-between align-items-center"
+    >
+      <div class="d-flex align-items-center gap-2">
+        <a
+          href="{% url 'profile' %}"
+          class="text-info fs-4 text-decoration-none"
+        >
+          <i class="fa-solid fa-arrow-right"></i>
+        </a>
+      </div>
+      <div class="d-flex gap-2">
+        <div
+          class="icon-btn rounded-pill d-flex justify-content-center align-items-center gap-2"
+        >
+          <h6 class="mb-0 text-warning fw-bold" id="global-balance">1500</h6>
+          <img src="{% static 'images/tac-coin.png' %}" alt="" width="25" />
+        </div>
+      </div>
+    </header>
+
+    <main class="pt-5 pb-5 mb-5 mt-4 d-flex justify-content-center w-100">
+      <div class="mine-container">
+        <h4 class="page-header-title">
+          <i class="fa-solid fa-wallet text-info"></i> سحب الأرباح (USDT)
+        </h4>
+
+        <div class="withdraw-container">
+          <!-- كارت رصيد USDT -->
+          <div class="usdt-balance-card text-center mb-4">
+            <h6 class="text-muted mb-2">رصيدك المتاح للسحب</h6>
+            <div class="usdt-amount">
+              <i class="fa-brands fa-dollar-sign text-success me-1"></i>
+              <span id="usdt-balance">0.00</span> USDT
+            </div>
+          </div>
+
+          <!-- كارت المحفظة -->
+          <div class="wallet-info-box mb-4">
+            <div class="d-flex align-items-center justify-content-between">
+              <div class="d-flex align-items-center gap-2">
+                <i class="fa-solid fa-wallet text-warning fs-5"></i>
+                <span class="text-white fw-bold">محفظتك</span>
+              </div>
+              <a
+                href="{% url 'profile' %}"
+                class="text-info text-decoration-none small"
+                >تغيير</a
+              >
+            </div>
+
+            <div id="wallet-connected-view">
+              <p class="text-success small mb-0 mt-2">
+                <i class="fa-solid fa-check-circle"></i> متصلة: UQBx...3fD2
+              </p>
+            </div>
+            <div id="wallet-not-connected-view" class="d-none">
+              <p class="text-muted small mb-2 mt-2">لم يتم ربط محفظة بعد.</p>
+              <a href="{% url 'profile' %}" class="btn btn-connect-wallet w-100"
+                >اربط المحفظة الآن</a
+              >
+            </div>
+          </div>
+
+          <!-- شروط السحب -->
+          <div class="withdraw-notes text-center mb-4">
+            <p class="mb-1">
+              <i class="fa-solid fa-circle-info text-info"></i> الحد الأدنى
+              للسحب: 5 USDT
+            </p>
+            <p class="mb-0">
+              <i class="fa-solid fa-bolt text-warning"></i> السحب يصل خلال دقائق
+              مباشرة لمحفظتك.
+            </p>
+          </div>
+
+          <!-- زرار السحب -->
+          <button
+            class="btn-confirm-withdraw"
+            id="withdraw-btn"
+            onclick="executeWithdraw()"
+            disabled
+          >
+            سحب الآن
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <nav class="bottom-nav fixed-bottom">
+      <div class="d-flex justify-content-around align-items-end pb-2 pt-1">
+        <a href="{% url 'index' %}" class="nav-item text-center">
+          <i class="fa-solid fa-hammer fs-5"></i><br /><small
+            style="font-size: 10px"
+            >الرئيسية</small
+          >
+        </a>
+        <a href="{% url 'upgrade' %}" class="nav-item text-center">
+          <i class="fa-solid fa-arrow-up-right-dots fs-5"></i><br /><small
+            style="font-size: 10px"
+            >تطوير</small
+          >
+        </a>
+        <a href="{% url 'tasks' %}" class="nav-item center-btn text-center">
+          <div
+            class="circle-glow d-flex justify-content-center align-items-center"
+          >
+            <i class="fa-solid fa-list-check fs-3 text-white"></i>
+          </div>
+          <br /><small style="font-size: 10px" class="mt-1 d-block"
+            >المهام</small
+          >
+        </a>
+        <a href="{% url 'referral' %}" class="nav-item text-center">
+          <i class="fa-solid fa-user-group fs-5"></i><br /><small
+            style="font-size: 10px"
+            >الإحالة</small
+          >
+        </a>
+        <a href="{% url 'profile' %}" class="nav-item text-center">
+          <i class="fa-solid fa-user fs-5"></i><br /><small
+            style="font-size: 10px"
+            >حسابي</small
+          >
+        </a>
+      </div>
+    </nav>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'js/game.js' %}"></script>
+    <script src="{% static 'js/index.js' %}"></script>
+
+    <script>
+      let currentUSDT = 0;
+      let userWalletAddress = "UQBxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"; // عنوان المحفظة (هيتجاب من TON Connect بعدين)
+
+      document.addEventListener("DOMContentLoaded", () => {
+        fetch("/api/login/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            telegram_id: 123456789,
+            username: "Mohamed_messi",
+          }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.message === "Success") {
+              currentUSDT = data.user.usdt_balance;
+              document.getElementById("usdt-balance").innerText =
+                currentUSDT.toFixed(2);
+
+              // لو اليوزر عنده محفظة مسجلة، نستخدمها
+              if (data.user.wallet_address) {
+                userWalletAddress = data.user.wallet_address;
+              }
+
+              checkWithdrawEligibility();
+            }
+          });
+      });
+
+      function checkWithdrawEligibility() {
+        const btn = document.getElementById("withdraw-btn");
+        if (currentUSDT >= 5) {
+          btn.disabled = false;
+          btn.style.background = "linear-gradient(to bottom, #ffca28, #f57f17)";
+          btn.style.boxShadow = "0 5px 0 #b71c1c";
+        } else {
+          btn.disabled = true;
+          btn.style.background = "#999";
+          btn.style.boxShadow = "0 5px 0 #444";
+        }
+      }
+
+      function executeWithdraw() {
+        if (currentUSDT >= 5) {
+          Swal.fire({
+            title: "تأكيد طلب السحب",
+            text: `سيتم خصم ${currentUSDT.toFixed(2)} USDT وتقديم طلب السحب. هل أنت متأكد؟`,
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "نعم، اطلب السحب",
+            cancelButtonText: "إلغاء",
+            customClass: {
+              popup: "swal-custom-popup",
+              title: "swal-custom-title",
+              confirmButton: "swal-confirm-btn",
+              cancelButton: "swal-cancel-btn",
+            },
+          }).then((result) => {
+            if (result.isConfirmed) {
+              // بنبعت الطلب للباك إند
+              fetch("/api/request-withdraw/", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  telegram_id: 123456789,
+                  amount: currentUSDT,
+                  wallet_address: userWalletAddress,
+                }),
+              })
+                .then((res) => res.json())
+                .then((data) => {
+                  if (data.message === "Withdraw Request Submitted!") {
+                    // تحديث الرصيد في الشاشة
+                    currentUSDT = data.new_usdt_balance;
+                    document.getElementById("usdt-balance").innerText =
+                      currentUSDT.toFixed(2);
+
+                    // تعطيل الزرار
+                    document.getElementById("withdraw-btn").disabled = true;
+                    document.getElementById("withdraw-btn").style.background =
+                      "#999";
+                    document.getElementById("withdraw-btn").style.boxShadow =
+                      "0 5px 0 #444";
+
+                    Swal.fire({
+                      title: "تم تقديم الطلب!",
+                      text: "طلب السحب قيد المراجعة. سيتم تحويل المبلغ خلال 24 ساعة.",
+                      icon: "success",
+                      confirmButtonText: "حسناً",
+                      customClass: {
+                        popup: "swal-custom-popup",
+                        title: "swal-custom-title",
+                        confirmButton: "swal-confirm-btn",
+                      },
+                    });
+                  } else {
+                    Swal.fire("خطأ", data.error, "error");
+                  }
+                });
+            }
+          });
+        }
+      }
+    </script>
+    
+  </body>
+</html>

@@ -1,0 +1,285 @@
+{% load static %}
+<!doctype html>
+<html lang="ar" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>حسابي - TAC Miner</title>
+    <link
+      rel="shortcut icon"
+      href="{% static 'logo-brand/one-logo.png' %}"
+      type="image/x-icon"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="{% static 'css/profile.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/global.css' %}" />
+  </head>
+  <body>
+    <!-- الهيدر -->
+    <header
+      class="top-header mt-3 px-3 d-flex justify-content-between align-items-center"
+    >
+      <div class="d-flex align-items-center gap-2">
+        <div class="border-info">
+          <img src="{% static 'logo-brand/one-logo.png' %}" alt="" width="50" />
+        </div>
+      </div>
+      <div class="d-flex gap-2">
+        <div
+          class="icon-btn rounded-pill d-flex justify-content-center align-items-center gap-2"
+        >
+          <h6 class="mb-0 text-warning fw-bold" id="global-balance">1500</h6>
+          <img src="{% static 'images/tac-coin.png' %}" alt="" width="25" />
+        </div>
+      </div>
+    </header>
+
+    <!-- المحتوى -->
+    <main class="pt-5 pb-5 mb-5 mt-4 d-flex justify-content-center w-100">
+      <div class="mine-container">
+        <!-- 1. بيانات اللاعب -->
+        <div class="text-center mb-4 mt-3">
+          <div class="profile-avatar-box">
+            <img src="{% static 'images/8.png' %}" alt="" width="60" />
+          </div>
+          <span
+            id="partner-badge"
+            class="badge bg-warning text-dark ms-1 d-none"
+            style="font-size: 12px; vertical-align: middle"
+          >
+            <i class="fa-solid fa-crown"></i> شريك
+          </span>
+          <h5
+            class="text-white fw-bold mb-1 d-flex justify-content-center align-items-center gap-2"
+          >
+            Mohamed_messi
+
+            <!-- أيقونة التوثيق (تظهر لو المحفظة مربوطة) -->
+            <i
+              id="verified-badge"
+              class="fa-solid fa-circle-check text-info d-none"
+              style="font-size: 18px"
+              title="حساب موثق"
+            ></i>
+
+            <!-- شارة الشريك -->
+            <span
+              id="partner-badge"
+              class="badge bg-warning text-dark d-none"
+              style="font-size: 12px"
+            >
+              <i class="fa-solid fa-crown"></i> شريك
+            </span>
+          </h5>
+        </div>
+
+        <!-- 2. كارت المحفظة (الرصيد) -->
+        <div class="wallet-card text-center mb-4">
+          <h6>إجمالي رصيدك</h6>
+          <div class="wallet-balance">
+            <span id="profile-balance">2,600</span>
+            <span style="font-size: 16px; color: #b71c1c">TAC</span>
+          </div>
+
+          <!-- توضيح سعر الصرف -->
+          <div class="exchange-rate mt-2">
+            <i class="fa-solid fa-arrows-rotate"></i> 920 TAC = 1 USDT
+          </div>
+        </div>
+
+        <!-- كارت ربط المحفظة -->
+        <div class="wallet-connect-card mb-4">
+          <div class="d-flex align-items-center gap-3">
+            <div class="connect-icon">
+              <i class="fa-solid fa-wallet"></i>
+            </div>
+            <div class="flex-grow-1">
+              <h6 class="mb-1 text-white fw-bold">اربط محفظتك (TON Connect)</h6>
+              <p class="mb-0 text-muted small">
+                اربط محفظة TON الخاصة بك لتفعيل السحب والتحقق.
+              </p>
+            </div>
+          </div>
+          <button
+            class="btn btn-connect-wallet w-100 mt-3"
+            onclick="connectWalletMock()"
+          >
+            <i class="fa-solid fa-link me-1"></i> ربط المحفظة
+          </button>
+        </div>
+
+        <!-- 3. أزرار التحويل والسحب -->
+        <div class="row g-3 mb-4">
+          <div class="col-6">
+            <a href="{% url 'exchange' %}" class="action-btn btn-exchange">
+              <i class="fa-solid fa-money-bill-transfer"></i>
+              تحويل العملة
+            </a>
+          </div>
+          <div class="col-6">
+            <a href="{% url 'withdraw' %}" class="action-btn btn-withdraw">
+              <i class="fa-solid fa-hand-holding-dollar"></i>
+              سحب USDT
+            </a>
+          </div>
+        </div>
+
+        <!-- 4. قائمة الإعدادات -->
+        <h6 class="text-white mb-3 text-start fw-bold">الإعدادات</h6>
+        <div class="settings-list text-start">
+          <a href="{% url 'withdraw_history' %}" class="settings-item">
+            <i class="fa-solid fa-clock-rotate-left text-info"></i>
+            <span>سجل السحوبات</span>
+            <i
+              class="fa-solid fa-chevron-left ms-auto"
+              style="font-size: 12px"
+            ></i>
+          </a>
+
+          <a href="{% url 'how_to_earn' %}" class="settings-item">
+            <i class="fa-solid fa-chart-line text-warning"></i>
+            <span>كيف تزيد من أرباحك</span>
+            <i
+              class="fa-solid fa-chevron-left ms-auto"
+              style="font-size: 12px"
+            ></i>
+          </a>
+
+          <a href="{% url 'about' %}" class="settings-item">
+            <i class="fa-solid fa-circle-info text-cyan"></i>
+            <span>من نحن</span>
+            <i
+              class="fa-solid fa-chevron-left ms-auto"
+              style="font-size: 12px"
+            ></i>
+          </a>
+        </div>
+      </div>
+    </main>
+
+    <!-- الشريط السفلي -->
+    <nav class="bottom-nav fixed-bottom">
+      <div class="d-flex justify-content-around align-items-end pb-2 pt-1">
+        <a href="{% url 'index' %}" class="nav-item text-center">
+          <i class="fa-solid fa-hammer fs-5"></i><br /><small
+            style="font-size: 10px"
+            >الرئيسية</small
+          >
+        </a>
+        <a href="{% url 'upgrade' %}" class="nav-item text-center">
+          <i class="fa-solid fa-arrow-up-right-dots fs-5"></i><br /><small
+            style="font-size: 10px"
+            >تطوير</small
+          >
+        </a>
+        <a href="{% url 'tasks' %}" class="nav-item center-btn text-center">
+          <div
+            class="circle-glow d-flex justify-content-center align-items-center"
+          >
+            <i class="fa-solid fa-list-check fs-3 text-white"></i>
+          </div>
+          <br /><small style="font-size: 10px" class="mt-1 d-block"
+            >المهام</small
+          >
+        </a>
+        <a href="{% url 'referral' %}" class="nav-item text-center">
+          <i class="fa-solid fa-user-group fs-5"></i><br /><small
+            style="font-size: 10px"
+            >الإحالة</small
+          >
+        </a>
+        <a href="{% url 'profile' %}" class="nav-item text-center">
+          <i class="fa-solid fa-user fs-5"></i><br /><small
+            style="font-size: 10px"
+            >حسابي</small
+          >
+        </a>
+      </div>
+    </nav>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'js/game.js' %}"></script>
+    <script src="{% static 'js/index.js' %}"></script>
+
+    <!-- سكريبت بسيط لتحديث الرصيد وعرض التنبيهات -->
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        // بنجيب بيانات اليوزر من الباك إند
+        fetch("/api/login/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            telegram_id: 123456789,
+            username: "Mohamed_messi",
+          }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.message === "Success") {
+              // 1. تحديث الرصيد
+              const balanceEl = document.getElementById("profile-balance");
+              if (balanceEl)
+                balanceEl.innerText = data.user.balance.toLocaleString("en-US");
+
+              // 2. إظهار شارة الشريك
+              if (data.user.is_partner) {
+                document
+                  .getElementById("partner-badge")
+                  .classList.remove("d-none");
+              }
+
+              // 3. إظهار علامة التوثيق (لو المحفظة مربوطة)
+              if (data.user.is_wallet_verified) {
+                document
+                  .getElementById("verified-badge")
+                  .classList.remove("d-none");
+              }
+            }
+          })
+          .catch((err) => console.log("Error fetching user data:", err));
+      });
+
+      // دالة محاكاة لربط المحفظة
+      function connectWalletMock() {
+        const btn = document.querySelector(".btn-connect-wallet");
+        btn.innerHTML =
+          '<i class="fa-solid fa-spinner fa-spin me-1"></i> جاري الاتصال...';
+        btn.disabled = true;
+
+        setTimeout(() => {
+          Swal.fire({
+            title: "تم الاتصال!",
+            text: "تم ربط محفظتك بنجاح (محاكاة). سيتم تفعيل السحب قريباً.",
+            icon: "success",
+            confirmButtonText: "رائع!",
+            customClass: {
+              popup: "swal-custom-popup",
+              title: "swal-custom-title",
+              confirmButton: "swal-confirm-btn",
+            },
+          });
+
+          btn.innerHTML =
+            '<i class="fa-solid fa-check me-1"></i> المحفظة متصلة';
+          btn.style.background = "#2e7d32";
+          btn.style.boxShadow = "0 4px 0 #1b5e20";
+        }, 1500);
+      }
+    </script>
+  </body>
+</html>

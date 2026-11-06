@@ -1,0 +1,539 @@
+.mine-container {
+  width: 95%;
+  max-width: 600px;
+  padding: 0 10px;
+  margin-top: 10px;
+}
+
+.mine-board {
+  display: flex;
+  flex-direction: column;
+  background: #b88a5c;
+  border: 4px solid var(--wood-board-border);
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow:
+    0 10px 20px rgba(0, 0, 0, 0.5),
+    inset 0 0 10px rgba(0, 0, 0, 0.2);
+  gap: 8px;
+  position: relative;
+}
+
+@media (min-width: 500px) {
+  .mine-board {
+    flex-direction: row;
+    align-items: stretch;
+  }
+}
+
+.mine-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #d8b68c;
+  border: 1px solid #8b5a2b;
+  border-radius: 8px;
+  padding: 8px;
+  box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.3);
+}
+
+.mine-title {
+  font-weight: 900;
+  font-size: 14px;
+  color: var(--wood-text-dark);
+  margin-bottom: 5px;
+}
+
+.mine-image-container {
+  width: 100%;
+  max-width: 110px;
+  height: 110px;
+  background: #a67b5b;
+  border-radius: 8px;
+  border: 2px solid var(--wood-board-border);
+  overflow: hidden;
+  margin-bottom: 8px;
+  padding: 5px;
+}
+
+.mine-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.mine-animated {
+  animation: pulse-mine 2s infinite alternate;
+}
+
+@keyframes pulse-mine {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.05);
+  }
+}
+
+.mine-capacity {
+  width: 100%;
+  position: relative;
+  text-align: center;
+  margin-top: auto;
+}
+
+.progress-bar-bg {
+  width: 100%;
+  height: 10px;
+  background-color: var(--wood-text-dark);
+  border-radius: 5px;
+  overflow: hidden;
+  border: 1px solid var(--wood-panel-border);
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background-color: #f57f17;
+}
+
+.capacity-text {
+  font-size: 8px;
+  font-weight: bold;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #fff;
+}
+
+.mine-center {
+  flex: 2;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 5px;
+}
+
+.worker-slot {
+  background: #d8b68c;
+  border: 1px solid #8b5a2b;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px;
+  position: relative;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.worker-slot.active-worker {
+  background: #ffca28;
+  border: 1px solid #f57f17;
+  box-shadow: 0 0 8px rgba(245, 127, 23, 0.3);
+}
+
+.worker-name {
+  font-size: 8px;
+  font-weight: bold;
+  color: var(--wood-text-dark);
+  margin-bottom: 1px;
+  text-align: center;
+}
+
+.worker-avatar {
+  width: 100%;
+  height: 35px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0.3;
+}
+
+.worker-slot.active-worker .worker-avatar {
+  opacity: 1;
+}
+
+.worker-avatar img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.worker-level {
+  background: var(--wood-text-dark);
+  color: #fff;
+  font-size: 8px;
+  font-weight: bold;
+  padding: 0px 6px;
+  border-radius: 10px;
+  width: fit-content;
+}
+
+/* أزرار وكروت الإحصائيات */
+.stats-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.stats-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.stat-card {
+  flex: 1;
+  background: rgba(26, 30, 46, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 10px 5px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+.stat-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, #f57f17, #ffca28);
+}
+.stat-icon {
+  font-size: 18px;
+  color: #ffca28;
+  margin-bottom: 5px;
+}
+.stat-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.stat-title {
+  font-size: 10px;
+  color: #8a95b5;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+.stat-val {
+  font-size: 12px;
+  font-weight: 900;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.stat-val i {
+  color: #ffca28;
+  font-size: 10px;
+}
+
+.collect-card {
+  background: linear-gradient(135deg, #1e253a, #121420);
+  border: 2px solid #ffca28;
+  border-radius: 15px;
+  padding: 15px;
+  text-align: center;
+  box-shadow: 0 5px 20px rgba(255, 202, 40, 0.15);
+}
+.current-gold-big {
+  font-size: 28px;
+  font-weight: 900;
+  color: #fff;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  text-shadow: 0 0 10px rgba(255, 202, 40, 0.5);
+}
+.current-gold-big i {
+  color: #ffca28;
+  font-size: 24px;
+}
+.btn-collect-board {
+  background: linear-gradient(to bottom, #ffca28, #f57f17);
+  border: 2px solid #e65100;
+  color: #2b1a10;
+  font-weight: 900;
+  font-size: 16px;
+  border-radius: 8px;
+  padding: 10px 0;
+  text-transform: uppercase;
+  box-shadow:
+    0 4px 0 #b71c1c,
+    0 5px 15px rgba(0, 0, 0, 0.3);
+  transition: all 0.1s;
+}
+.btn-collect-board:active {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 #b71c1c;
+}
+
+/* لوحة المتصدرين */
+.leaderboard-container {
+  background: rgba(26, 30, 46, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  padding: 15px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+.leaderboard-title {
+  color: #fff;
+  font-weight: 900;
+  text-align: center;
+  margin-bottom: 15px;
+  font-size: 16px;
+}
+.leaderboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.leader-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.leader-item.top-1 {
+  background: rgba(255, 202, 40, 0.1);
+  border: 1px solid rgba(255, 202, 40, 0.3);
+}
+.leader-item.top-2 {
+  background: rgba(192, 192, 192, 0.1);
+  border: 1px solid rgba(192, 192, 192, 0.3);
+}
+.leader-item.top-3 {
+  background: rgba(205, 127, 50, 0.1);
+  border: 1px solid rgba(205, 127, 50, 0.3);
+}
+.leader-item.my-rank {
+  background: rgba(0, 210, 255, 0.1);
+  border: 1px solid var(--cyan);
+  box-shadow: 0 0 10px rgba(0, 210, 255, 0.2);
+}
+.rank-badge {
+  width: 25px;
+  height: 25px;
+  background: #2a3654;
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  font-size: 12px;
+  margin-right: 10px;
+}
+.top-1 .rank-badge {
+  background: #ffca28;
+  color: #000;
+}
+.top-2 .rank-badge {
+  background: #c0c0c0;
+  color: #000;
+}
+.top-3 .rank-badge {
+  background: #cd7f32;
+  color: #fff;
+}
+.my-rank .rank-badge {
+  background: var(--cyan);
+  color: #000;
+}
+.leader-avatar {
+  width: 30px;
+  height: 30px;
+  background: #1a1e2e;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-right: 10px;
+  font-size: 14px;
+}
+.leader-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.leader-name {
+  color: #fff;
+  font-weight: bold;
+  font-size: 13px;
+}
+.leader-score {
+  color: #8a95b5;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.leader-score i {
+  color: #ffca28;
+  font-size: 10px;
+}
+
+
+/* زر التداول على STON.fi */
+.btn-stonfi-trade {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1e253a, #121420);
+  border: 2px solid #00d2ff; /* لون سماوي زي STON.fi */
+  color: #fff;
+  font-weight: 900;
+  font-size: 14px;
+  padding: 12px;
+  border-radius: 12px;
+  text-decoration: none;
+  box-shadow: 0 0 15px rgba(0, 210, 255, 0.2);
+  transition: all 0.2s;
+}
+
+.btn-stonfi-trade:hover {
+  background: rgba(0, 210, 255, 0.1);
+  color: #00d2ff;
+  box-shadow: 0 0 25px rgba(0, 210, 255, 0.4);
+}
+
+.btn-stonfi-trade:active {
+  transform: scale(0.98);
+}
+
+.my-user {
+  padding-top: 10px;
+  margin-top: 5px;
+  font-weight: 700;
+  font-family: "Cairo", sans-serif;
+  color: #fff;
+  border-bottom: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.my-user:hover {
+  color: var(--cyan); /* اللون السماوي */
+  border-bottom: 2px solid var(--cyan);
+}
+
+
+/* تأثير العملة الطايرة */
+.flying-coin {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  background-image: url('/static/images/tac-coin.png');
+  background-size: cover;
+  z-index: 99999;
+  pointer-events: none;
+  /* الأنيميشن بيبدأ من المكان اللي الجافاسكريبت هيحدده */
+  animation: flyUp 0.8s ease-out forwards;
+}
+
+@keyframes flyUp {
+  0% { 
+    opacity: 1; 
+    transform: scale(1); 
+  }
+  100% { 
+    opacity: 0; 
+    /* بنحركها بالمسافة العشوائية اللي الجافاسكريبت بيبعتها */
+    transform: translate(var(--x), var(--y)) scale(0.5); 
+  }
+}
+
+
+
+/* تحسين شكل لوحة المتصدرين */
+.leaderboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.leader-item {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 6px 10px;
+  transition: background 0.2s;
+}
+
+.leader-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* تمييز المراكز الأولى */
+.leader-item.top-1 {
+  background: rgba(255, 202, 40, 0.1);
+  border: 1px solid rgba(255, 202, 40, 0.3);
+}
+
+.leader-item.top-2 {
+  background: rgba(192, 192, 192, 0.1);
+  border: 1px solid rgba(192, 192, 192, 0.3);
+}
+
+.leader-item.top-3 {
+  background: rgba(205, 127, 50, 0.1);
+  border: 1px solid rgba(205, 127, 50, 0.3);
+}
+
+/* تمييز مركز اليوزر */
+.leader-item.my-rank {
+  background: rgba(0, 210, 255, 0.1);
+  box-shadow: 0 0 10px rgba(0, 210, 255, 0.2);
+}
+
+.rank-badge {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.leader-avatar {
+  background: #1a1e2e;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.leader-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.leader-name {
+  color: #fff;
+  font-weight: bold;
+  line-height: 1.2;
+}
+
+.leader-score {
+  color: #8a95b5;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: bold;
+  flex-shrink: 0;
+}

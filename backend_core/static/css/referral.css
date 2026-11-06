@@ -1,0 +1,330 @@
+.modern-referral-card {
+  background: linear-gradient(145deg, #1e253a, #121420);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 25px 20px;
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.5),
+    inset 0 0 20px rgba(255, 255, 255, 0.02);
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+}
+.modern-referral-card::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+    circle,
+    rgba(0, 210, 255, 0.1) 0%,
+    transparent 60%
+  );
+  z-index: 0;
+  pointer-events: none;
+}
+.gift-icon-wrapper {
+  width: 70px;
+  height: 70px;
+  background: rgba(255, 202, 40, 0.1);
+  border: 2px solid rgba(255, 202, 40, 0.3);
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto 15px auto;
+  font-size: 30px;
+  color: #ffca28;
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 0 15px rgba(255, 202, 40, 0.2);
+}
+.modern-input-group {
+  display: flex;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 5px;
+  position: relative;
+  z-index: 1;
+}
+.modern-input-group input {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-weight: bold;
+  font-size: 13px;
+  width: 100%;
+  padding: 8px 12px;
+  outline: none;
+}
+.btn-modern-copy {
+  background: linear-gradient(to bottom, #00d2ff, #0052ff);
+  border: none;
+  color: #fff;
+  font-weight: 900;
+  border-radius: 8px;
+  box-shadow: 0 3px 0 #003399;
+  padding: 8px 20px;
+  white-space: nowrap;
+  transition: all 0.1s;
+}
+.btn-modern-copy:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 #003399;
+}
+.stat-card-modern {
+  background: rgba(26, 30, 46, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  padding: 15px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s;
+}
+.stat-card-modern:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255, 202, 40, 0.3);
+}
+.stat-icon-modern {
+  width: 45px;
+  height: 45px;
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 20px;
+}
+.bg-blue-light {
+  background: rgba(0, 210, 255, 0.1);
+  color: var(--cyan);
+  border: 1px solid rgba(0, 210, 255, 0.2);
+}
+.bg-gold-light {
+  background: rgba(255, 202, 40, 0.1);
+  color: #ffca28;
+  border: 1px solid rgba(255, 202, 40, 0.2);
+}
+.stat-info-modern h3 {
+  font-size: 20px;
+  font-weight: 900;
+  color: #fff;
+  margin: 0;
+  line-height: 1.2;
+}
+.stat-info-modern small {
+  font-size: 11px;
+  color: #8a95b5;
+  font-weight: bold;
+}
+.text-cyan {
+  color: var(--cyan);
+}
+.friends-container {
+  background: rgba(26, 30, 46, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  padding: 15px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+.friends-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.friend-item {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 10px;
+}
+.friend-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 18px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+.friend-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.friend-name {
+  color: #fff;
+  font-weight: bold;
+  font-size: 14px;
+}
+.friend-status {
+  font-size: 11px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+.friend-earnings {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+}
+.earn-val {
+  color: #ffca28;
+  font-weight: 900;
+  font-size: 15px;
+}
+.friend-earnings small {
+  color: #8a95b5;
+  font-size: 9px;
+}
+.btn-referral-collect {
+  background: linear-gradient(to bottom, #ffca28, #f57f17);
+  border: 1px solid #e65100;
+  color: var(--wood-text-dark);
+  font-weight: 900;
+  font-size: 12px;
+  border-radius: 6px;
+  padding: 6px 0;
+  box-shadow: 0 3px 0 #b71c1c;
+  transition: all 0.1s;
+}
+.btn-referral-collect:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 #b71c1c;
+}
+
+
+
+/* =========================================
+   تصميم مكافآت الدعوة (Milestones)
+   ========================================= */
+
+.milestones-container {
+  background: rgba(26, 30, 46, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  padding: 15px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.milestones-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.milestone-card {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 10px 12px;
+  transition: all 0.3s ease;
+}
+
+/* شكل الكارت لو المكافأة متاحة (مستحقة) */
+.milestone-card.claimable {
+  border-color: rgba(255, 202, 40, 0.5);
+  background: rgba(255, 202, 40, 0.05);
+  box-shadow: 0 0 10px rgba(255, 202, 40, 0.1);
+}
+
+/* شكل الكارت لو المكافأة تم استلامها */
+.milestone-card.claimed {
+  opacity: 0.5;
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.02);
+}
+
+.milestone-icon {
+  width: 40px;
+  height: 40px;
+  background: rgba(0, 210, 255, 0.1);
+  border: 1px solid rgba(0, 210, 255, 0.2);
+  border-radius: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 18px;
+  color: #00d2ff;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.milestone-card.claimable .milestone-icon {
+  background: rgba(255, 202, 40, 0.1);
+  border-color: rgba(255, 202, 40, 0.3);
+  color: #ffca28;
+}
+
+.milestone-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.milestone-title {
+  color: #fff;
+  font-weight: bold;
+  font-size: 13px;
+}
+
+.milestone-reward {
+  color: #ffca28;
+  font-weight: 900;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.milestone-card.claimed .milestone-reward {
+  color: #8a95b5;
+}
+
+/* زرار الاستلام */
+.btn-claim-milestone {
+  background: linear-gradient(to bottom, #ffca28, #f57f17);
+  border: 1px solid #e65100;
+  color: #2b1a10;
+  font-weight: 900;
+  font-size: 12px;
+  border-radius: 6px;
+  padding: 6px 12px;
+  box-shadow: 0 3px 0 #b71c1c;
+  transition: all 0.1s;
+  white-space: nowrap;
+}
+
+.btn-claim-milestone:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 #b71c1c;
+}
+
+/* لما المكافأة تكون غير متاحة (عشان عدد الأصدقاء قليل) */
+.btn-claim-milestone.disabled-btn {
+  background: #555;
+  border-color: #333;
+  box-shadow: 0 3px 0 #222;
+  color: #999;
+  cursor: not-allowed;
+  pointer-events: none; /* بيمنع الضغط */
+}
+
+.btn-claim-milestone.claimed-btn {
+  background: transparent;
+  border: 1px solid #8a95b5;
+  color: #8a95b5;
+  box-shadow: none;
+  cursor: default;
+  pointer-events: none;
+}

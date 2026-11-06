@@ -1,0 +1,229 @@
+{% load static %}
+<!doctype html>
+<html lang="ar" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>الرئيسية - TAC Miner</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="shortcut icon"
+      href="{% static 'logo-brand/one-logo.png' %}"
+      type="image/x-icon"
+    />
+
+    <link rel="stylesheet" href="{% static 'css/global.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/home.css' %}" />
+  </head>
+  <body>
+    <header
+      class="top-header mt-3 px-3 d-flex justify-content-between align-items-center"
+    >
+      <div class="d-flex align-items-center gap-2">
+        <div class="border-info">
+          <img
+            src="{% static 'logo-brand/one-logo.png' %}"
+            alt=""
+            width="50"
+            style="padding-bottom: 10px"
+          />
+        </div>
+        <p class="my-user">Mohamed_messi</p>
+      </div>
+      <div class="d-flex gap-2 align-items-center">
+        <span
+          class="badge bg-dark border border-warning text-warning px-2 py-1"
+          style="font-size: 10px"
+        >
+          <i class="fa-solid fa-bolt"></i> TAC
+        </span>
+        <div
+          class="icon-btn rounded-pill d-flex justify-content-center align-items-center gap-2"
+        >
+          <h6 class="mb-0 text-warning fw-bold" id="global-balance">1500</h6>
+          <img src="{% static 'images/tac-coin.png' %}" alt="" width="25" />
+        </div>
+      </div>
+    </header>
+
+    <main
+      class="d-flex flex-column align-items-center w-100"
+      style="min-height: 100vh; padding-top: 80px; padding-bottom: 100px"
+    >
+      <!-- لوحة المنجم -->
+      <div class="mine-container mb-3">
+        <div class="mine-board">
+          <div class="mine-left">
+            <div class="mine-title">Mine #1</div>
+            <div class="mine-image-container">
+              <img
+                src="{% static 'images/step.png' %}"
+                alt="Mine"
+                class="mine-img mine-animated"
+              />
+            </div>
+            <div class="mine-capacity">
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill" style="width: 0%"></div>
+              </div>
+              <span class="capacity-text">0 / 800</span>
+            </div>
+          </div>
+          <div class="mine-center" id="mine-grid"></div>
+        </div>
+      </div>
+
+      <!-- كروت الإحصائيات والجمع -->
+      <div class="mine-container mb-3">
+        <div class="stats-container">
+          <div class="stats-row">
+            <div class="stat-card">
+              <div class="stat-icon"><i class="fa-solid fa-clock"></i></div>
+              <div class="stat-info">
+                <span class="stat-title">Hour:</span>
+                <span class="stat-val">
+                  <i class="fa-solid fa-coins"></i>
+                  <span id="stat-hour">0</span>
+                </span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">
+                <i class="fa-solid fa-calendar-day"></i>
+              </div>
+              <div class="stat-info">
+                <span class="stat-title">Day:</span>
+                <span class="stat-val">
+                  <i class="fa-solid fa-coins"></i> <span id="stat-day">0</span>
+                </span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">
+                <i class="fa-solid fa-calendar-days"></i>
+              </div>
+              <div class="stat-info">
+                <span class="stat-title">Month:</span>
+                <span class="stat-val">
+                  <i class="fa-solid fa-coins"></i>
+                  <span id="stat-month">0</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="collect-card">
+            <div class="current-gold-big">
+              <i class="fa-solid fa-coins"></i>
+              <span id="current-gold">0.0000</span>
+            </div>
+            <button class="btn btn-collect-board w-100" onclick="collectGold()">
+              COLLECT
+            </button>
+          </div>
+
+          <div
+            id="coin-animation-container"
+            style="
+              position: fixed;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              z-index: 9999;
+              pointer-events: none;
+            "
+          ></div>
+        </div>
+      </div>
+
+      <!-- زر التداول على STON.fi -->
+      <div class="mine-container">
+        <a
+          href="https://ston.fi/tokens/tac"
+          target="_blank"
+          class="btn-stonfi-trade w-100"
+        >
+          <i class="fa-solid fa-arrow-right-arrow-left me-2"></i> تداول TAC على
+          STON.fi
+        </a>
+        <p class="text-center text-muted small mt-2" style="font-size: 11px">
+          <i class="fa-solid fa-circle-info"></i> هذا الزر يفتح منصة STON.fi
+          الرسمية لشراء وبيع عملة TAC.
+        </p>
+      </div>
+
+
+      <!-- لوحة المتصدرين (Leaderboard) -->
+      <div class="mine-container mt-3">
+        <div class="leaderboard-container">
+          <h5 class="leaderboard-title">
+            <i class="fa-solid fa-trophy text-warning"></i> أفضل المعدنين
+          </h5>
+          <!-- الحاوية اللي الجافاسكريبت هيرسم جواها -->
+          <div class="leaderboard-list" id="leaderboard-list">
+            <!-- سيتم توليد القائمة هنا -->
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- الشريط السفلي -->
+    <nav class="bottom-nav fixed-bottom">
+      <div class="d-flex justify-content-around align-items-end pb-2 pt-1">
+        <a href="{% url 'index' %}" class="nav-item text-center">
+          <i class="fa-solid fa-hammer fs-5"></i><br /><small
+            style="font-size: 10px"
+            >الرئيسية</small
+          >
+        </a>
+        <a href="{% url 'upgrade' %}" class="nav-item text-center">
+          <i class="fa-solid fa-arrow-up-right-dots fs-5"></i><br /><small
+            style="font-size: 10px"
+            >تطوير</small
+          >
+        </a>
+        <a href="{% url 'tasks' %}" class="nav-item center-btn text-center">
+          <div
+            class="circle-glow d-flex justify-content-center align-items-center"
+          >
+            <i class="fa-solid fa-list-check fs-3 text-white"></i>
+          </div>
+          <br /><small style="font-size: 10px" class="mt-1 d-block"
+            >المهام</small
+          >
+        </a>
+        <a href="{% url 'referral' %}" class="nav-item text-center">
+          <i class="fa-solid fa-user-group fs-5"></i><br /><small
+            style="font-size: 10px"
+            >الإحالة</small
+          >
+        </a>
+        <a href="{% url 'profile' %}" class="nav-item text-center">
+          <i class="fa-solid fa-user fs-5"></i><br /><small
+            style="font-size: 10px"
+            >حسابي</small
+          >
+        </a>
+      </div>
+    </nav>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'js/game.js' %}"></script>
+    <script src="{% static 'js/index.js' %}"></script>
+  </body>
+</html>

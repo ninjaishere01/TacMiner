@@ -1,0 +1,288 @@
+{% load static %}
+<!doctype html>
+<html lang="ar" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>تبديل العملة - TAC Miner</title>
+    <link
+      rel="shortcut icon"
+      href="{% static 'logo-brand/one-logo.png' %}"
+      type="image/x-icon"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="{% static 'css/global.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/exchange.css' %}" />
+  </head>
+  <body>
+    <!-- الهيدر -->
+    <header
+      class="top-header mt-3 px-3 d-flex justify-content-between align-items-center"
+    >
+      <div class="d-flex align-items-center gap-2">
+        <!-- زرار رجوع -->
+        <a
+          href="{% url 'profile' %}"
+          class="text-info fs-4 text-decoration-none"
+        >
+          <i class="fa-solid fa-arrow-right"></i>
+        </a>
+      </div>
+      <div class="d-flex gap-2">
+        <div
+          class="icon-btn rounded-pill d-flex justify-content-center align-items-center gap-2"
+        >
+          <h6 class="mb-0 text-warning fw-bold" id="global-balance">1500</h6>
+          <img src="{% static 'images/tac-coin.png' %}" alt="" width="25" />
+        </div>
+      </div>
+    </header>
+
+    <!-- المحتوى -->
+    <main class="pt-5 pb-5 mb-5 mt-4 d-flex justify-content-center w-100">
+      <div class="mine-container">
+        <h4 class="text-white text-center mb-4 fw-bold">تبديل العملة</h4>
+
+        <div class="exchange-container">
+          <!-- كارت الجولد -->
+          <div class="exchange-box">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span class="exchange-label mb-0">أنت تدفع (جولد)</span>
+              <!-- زرار MAX -->
+              <button class="btn-max-exchange" onclick="setMaxGold()">
+                MAX
+              </button>
+            </div>
+            <div class="exchange-input-group">
+              <input
+                type="number"
+                id="gold-input"
+                placeholder="0"
+                min="920"
+                step="100"
+                oninput="calculateExchange()"
+              />
+              <div class="coin-icon">
+                <i class="fa-solid fa-coins text-warning"></i> TAC
+              </div>
+            </div>
+            <small class="text-muted mt-1 d-block" style="font-size: 11px"
+              >الحد الأدنى للتحويل: 920 TAC</small
+            >
+          </div>
+
+          <!-- السهم -->
+          <div class="swap-icon-container">
+            <div class="swap-icon-btn">
+              <i class="fa-solid fa-arrow-down"></i>
+            </div>
+          </div>
+
+          <!-- كارت النتيجة -->
+          <div class="exchange-result-box">
+            <span class="exchange-label">أنت تستلم (USDT)</span>
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="exchange-result-value" id="usdt-output">0.00</span>
+              <div
+                class="coin-icon"
+                style="background: rgba(0, 150, 136, 0.1); color: #00796b"
+              >
+                <i class="fa-brands fa-bitcoin"></i> USDT
+              </div>
+            </div>
+            <small class="text-muted mt-1 d-block" style="font-size: 11px"
+              >سعر الصرف: 920 TAC = 1 USDT</small
+            >
+          </div>
+
+          <!-- زرار التأكيد -->
+          <button
+            class="btn-confirm-exchange"
+            id="confirm-btn"
+            onclick="executeExchange()"
+            disabled
+          >
+            تأكيد التبديل
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <!-- الشريط السفلي -->
+    <nav class="bottom-nav fixed-bottom">
+      <div class="d-flex justify-content-around align-items-end pb-2 pt-1">
+        <a href="{% url 'index' %}" class="nav-item text-center">
+          <i class="fa-solid fa-hammer fs-5"></i><br /><small
+            style="font-size: 10px"
+            >الرئيسية</small
+          >
+        </a>
+        <a href="{% url 'upgrade' %}" class="nav-item text-center">
+          <i class="fa-solid fa-arrow-up-right-dots fs-5"></i><br /><small
+            style="font-size: 10px"
+            >تطوير</small
+          >
+        </a>
+        <a href="{% url 'tasks' %}" class="nav-item center-btn text-center">
+          <div
+            class="circle-glow d-flex justify-content-center align-items-center"
+          >
+            <i class="fa-solid fa-list-check fs-3 text-white"></i>
+          </div>
+          <br /><small style="font-size: 10px" class="mt-1 d-block"
+            >المهام</small
+          >
+        </a>
+        <a href="{% url 'referral' %}" class="nav-item text-center">
+          <i class="fa-solid fa-user-group fs-5"></i><br /><small
+            style="font-size: 10px"
+            >الإحالة</small
+          >
+        </a>
+        <a href="{% url 'profile' %}" class="nav-item text-center">
+          <i class="fa-solid fa-user fs-5"></i><br /><small
+            style="font-size: 10px"
+            >حسابي</small
+          >
+        </a>
+      </div>
+    </nav>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'js/game.js' %}"></script>
+    <script src="{% static 'js/index.js' %}"></script>
+
+    <!-- سكريبت حساب التبديل -->
+    <script>
+      let currentBalance = 0; // متغير عشان نخزن الرصيد الحقيقي
+
+      document.addEventListener("DOMContentLoaded", () => {
+        // بنجيب الرصيد الحقيقي من الباك إند
+        fetch("/api/login/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            telegram_id: 123456789,
+            username: "Mohamed_messi",
+          }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.message === "Success") {
+              currentBalance = data.user.balance; // بنخزن الرصيد
+              document.getElementById("global-balance").innerText =
+                currentBalance.toLocaleString("en-US");
+            }
+          });
+      });
+
+      function calculateExchange() {
+        const goldInput = document.getElementById("gold-input").value;
+        const usdtOutput = document.getElementById("usdt-output");
+        const confirmBtn = document.getElementById("confirm-btn");
+
+        let gold = parseInt(goldInput) || 0;
+        let usdt = gold / 920;
+        usdtOutput.innerText = usdt.toFixed(2);
+
+        // بنستخدم currentBalance بدل data.balance
+        if (gold >= 920 && gold <= currentBalance) {
+          confirmBtn.disabled = false;
+          confirmBtn.style.background =
+            "linear-gradient(to bottom, #4fc3f7, #0288d1)";
+        } else {
+          confirmBtn.disabled = true;
+          confirmBtn.style.background = "#999";
+        }
+      }
+
+      function setMaxGold() {
+        const goldInput = document.getElementById("gold-input");
+        let maxGold = Math.floor(currentBalance);
+
+        if (maxGold < 920) {
+          Swal.fire({
+            title: "رصيدك غير كافي",
+            text: "تحتاج إلى 920 TAC على الأقل للتحويل.",
+            icon: "warning",
+            confirmButtonText: "حسناً",
+            customClass: {
+              popup: "swal-custom-popup",
+              title: "swal-custom-title",
+              confirmButton: "swal-confirm-btn",
+            },
+          });
+          return;
+        }
+
+        goldInput.value = maxGold;
+        calculateExchange();
+      }
+
+      function executeExchange() {
+        const goldInput = document.getElementById("gold-input").value;
+        let gold = parseInt(goldInput);
+
+        // بنستخدم currentBalance بدل data.balance
+        if (gold >= 920 && gold <= currentBalance) {
+          // بنبعت الطلب للباك إند
+          fetch("/api/exchange/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ telegram_id: 123456789, tac_amount: gold }),
+          })
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.message === "Exchange Successful!") {
+                // تحديث الرصيد الجديد
+                currentBalance = data.new_tac_balance;
+                document.getElementById("global-balance").innerText =
+                  currentBalance.toLocaleString("en-US");
+
+                // تصفير الخانات
+                document.getElementById("gold-input").value = "";
+                document.getElementById("usdt-output").innerText = "0.00";
+                document.getElementById("confirm-btn").disabled = true;
+                document.getElementById("confirm-btn").style.background =
+                  "#999";
+
+                Swal.fire({
+                  title: "تم التبديل بنجاح!",
+                  text: `تم تحويل ${gold.toLocaleString()} TAC إلى ${data.usdt_added.toFixed(2)} USDT.`,
+                  icon: "success",
+                  confirmButtonText: "اذهب لصفحة السحب",
+                  customClass: {
+                    popup: "swal-custom-popup",
+                    title: "swal-custom-title",
+                    confirmButton: "swal-confirm-btn",
+                  },
+                }).then((result) => {
+                  if (result.isConfirmed) {
+                    window.location.href = "{% url 'withdraw' %}";
+                  }
+                });
+              } else {
+                Swal.fire("خطأ", data.error, "error");
+              }
+            });
+        }
+      }
+    </script>
+  </body>
+</html>

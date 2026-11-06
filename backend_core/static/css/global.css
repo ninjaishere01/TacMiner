@@ -1,0 +1,334 @@
+:root {
+  --bg-main: #121420;
+  --bg-card: #1a1e2e;
+  --cyan: #00d2ff;
+  --gold: #ffb703;
+  --text-muted: #8a95b5;
+  --wood-board-bg: #c49a6c;
+  --wood-board-border: #6e4b2a;
+  --wood-panel-bg: #deb887;
+  --wood-panel-border: #8b5a2b;
+  --wood-text-dark: #2b1a10;
+}
+
+body {
+  font-family: "Cairo", sans-serif;
+  background-color: var(--bg-main);
+  background-image: radial-gradient(circle at top, #1e253a 0%, #0d111a 100%);
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  color: white;
+}
+
+/* --- الهيدر والشريط السفلي --- */
+.top-header {
+  background-color: transparent;
+  height: 50px;
+  position: absolute;
+  top: 0;
+  width: 100%;
+  z-index: 100;
+}
+
+.logo-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2a3654, #121420);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 0 10px rgba(0, 210, 255, 0.15);
+}
+
+.icon-btn {
+  height: 45px;
+  padding: 0 15px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.bottom-nav {
+  background: rgba(18, 20, 32, 0.95);
+  backdrop-filter: blur(15px);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.nav-item {
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: all 0.3s;
+  width: 60px;
+}
+.nav-item.active {
+  color: var(--cyan);
+}
+
+.center-btn {
+  position: relative;
+  top: -10px;
+}
+.circle-glow {
+  width: 55px;
+  height: 55px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #00d2ff, #0052ff);
+  box-shadow: 0 0 20px rgba(0, 210, 255, 0.4);
+  margin: 0 auto;
+  transition: transform 0.2s;
+}
+.circle-glow:active {
+  transform: scale(0.9);
+}
+
+/* التنبيه اللي في النص (النجاح والخطأ) */
+.swal-custom-popup {
+  background: var(--wood-board-bg) !important; /* لون الخشب */
+  border: 4px solid var(--wood-board-border) !important;
+  border-radius: 16px !important;
+  font-family: "Cairo", sans-serif !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.8) !important;
+
+  width: 85% !important; /* عرض التنبيه 85% من الشاشة (مش واخد كامل العرض) */
+  max-width: 320px !important; /* أقصى عرض 320 بكسل عشان ميكبرش أوي على الشاشات الكبيرة */
+  padding: 15px 10px !important;
+}
+
+.swal-custom-title {
+  color: var(--wood-text-dark) !important;
+  font-weight: 900 !important;
+  font-size: 16px !important;
+}
+
+/* أيقونة النجاح (تخصيص كامل عشان تبان على الخشب) */
+.swal2-icon.swal2-success {
+  border-color: #2e7d32 !important; /* إطار أخضر غامق */
+  background-color: rgba(46, 125, 50, 0.1) !important; /* خلفية خفيفة */
+}
+
+.swal2-icon.swal2-success .swal2-success-ring {
+  border: 0.25em solid rgba(46, 125, 50, 0.4) !important;
+}
+
+.swal2-icon.swal2-success [class^="swal2-success-line"] {
+  background-color: #2e7d32 !important; /* علامة الصح لونها أخضر غامق يبان */
+}
+
+/* أيقونة الخطأ (تخصيص عشان تبان) */
+.swal2-icon.swal2-error {
+  border-color: #c62828 !important;
+  background-color: rgba(198, 40, 40, 0.1) !important;
+}
+
+.swal2-icon.swal2-error [class^="swal2-x-mark-line"] {
+  background-color: #c62828 !important;
+}
+
+/* =========================================
+   تصميم الصفحات الثابتة (سجل، كيف تزيد، من نحن)
+   ========================================= */
+
+.page-header-title {
+  color: #fff;
+  font-weight: 900;
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+/* الكارت الغامق الموحد */
+.dark-info-card {
+  background: rgba(26, 30, 46, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 15px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+}
+
+.dark-info-card h5 {
+  color: #ffca28;
+  font-weight: 900;
+  margin-bottom: 15px;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+  padding-bottom: 10px;
+}
+
+.dark-info-card p {
+  color: #8a95b5;
+  font-size: 14px;
+  line-height: 1.8;
+  margin-bottom: 10px;
+}
+
+/* --- سجل السحوبات (Transactions) --- */
+.transaction-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+
+.trx-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.trx-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 18px;
+}
+
+.trx-icon.success {
+  background: rgba(76, 175, 80, 0.1);
+  color: #4caf50;
+  border: 1px solid rgba(76, 175, 80, 0.2);
+}
+.trx-icon.pending {
+  background: rgba(255, 193, 7, 0.1);
+  color: #ffc107;
+  border: 1px solid rgba(255, 193, 7, 0.2);
+}
+.trx-icon.failed {
+  background: rgba(244, 67, 54, 0.1);
+  color: #f44336;
+  border: 1px solid rgba(244, 67, 54, 0.2);
+}
+
+.trx-details {
+  display: flex;
+  flex-direction: column;
+}
+.trx-title {
+  color: #fff;
+  font-weight: bold;
+  font-size: 14px;
+}
+.trx-date {
+  color: #6c7a9a;
+  font-size: 11px;
+}
+
+.trx-amount {
+  font-weight: 900;
+  font-size: 15px;
+  text-align: left;
+}
+.trx-amount.success {
+  color: #4caf50;
+}
+.trx-amount.pending {
+  color: #ffc107;
+}
+.trx-amount.failed {
+  color: #f44336;
+}
+
+/* --- صفحة كيف تزيد الأرباح (Steps) --- */
+.step-item {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+.step-number {
+  width: 30px;
+  height: 30px;
+  background: #ffca28;
+  color: #000;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+.step-content h6 {
+  color: #fff;
+  font-weight: bold;
+  margin-bottom: 5px;
+  font-size: 15px;
+}
+.step-content p {
+  color: #8a95b5;
+  font-size: 13px;
+  margin-bottom: 0;
+  line-height: 1.6;
+}
+
+/* --- صفحة من نحن (About) --- */
+.about-logo {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 15px auto;
+  display: block;
+  border-radius: 50%;
+  border: 3px solid #ffca28;
+  padding: 5px;
+  background: rgba(255, 202, 40, 0.1);
+}
+
+/* تحديد عرض موحد وملموم لكل الصفحات عشان متبوظش على الشاشات الكبيرة */
+.mine-container,
+main > div {
+  width: 100%;
+  max-width: 500px !important; /* أقصى عرض 500 بكسل */
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 15px;
+  padding-right: 15px;
+}
+
+/* زرار الإلغاء في SweetAlert */
+.swal-cancel-btn {
+  background: #555 !important;
+  color: #fff !important;
+  font-weight: bold !important;
+  border: none !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 0 #333 !important;
+}
+
+
+
+
+
+/* تأثير الضغط على الأزرار */
+button, .btn, .action-btn, .worker-slot {
+  transition: transform 0.1s ease;
+}
+button:active, .btn:active, .action-btn:active, .worker-slot:active {
+  transform: scale(0.95);
+}
+/* حركة دخول الصفحة */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+main, .mine-container {
+  animation: fadeInUp 0.5s ease-out forwards;
+}
