@@ -6,6 +6,13 @@ from rest_framework.permissions import AllowAny
 from decimal import Decimal
 from django.utils import timezone
 from datetime import timedelta
+import requests
+import random
+from django.conf import settings
+import threading
+import time
+
+
 
 
 #  لحساب ارباح اليوزر من العمال 
@@ -451,6 +458,20 @@ def request_withdraw(request):
             status='pending'
         )
 
+        # 3. إرسال إشعار لقناة الأدمن (في الخلفية)
+        thread_admin = threading.Thread(
+            target=send_admin_notification,
+            args=(user.username, float(withdraw_amount), wallet_address)
+        )
+        thread_admin.start()
+
+        # 4. إرسال الإعلان لقناة الجمهور (في الخلفية)
+        thread_public = threading.Thread(
+            target=send_public_announcement,
+            args=(user.username, float(withdraw_amount), wallet_address)
+        )
+        thread_public.start()
+
         return Response({
             "message": "Withdraw Request Submitted!",
             "new_usdt_balance": float(user.usdt_balance)
@@ -460,6 +481,7 @@ def request_withdraw(request):
         return Response({"error": "User not found"}, status=404)
     except Exception as e:
         return Response({"error": str(e)}, status=500)
+    
 
 
 
@@ -488,6 +510,92 @@ def get_withdraw_history(request):
         return Response(data)
     except User.DoesNotExist:
         return Response({"error": "User not found"}, status=404)
+
+
+
+def send_withdraw_announcement(username, amount, wallet_address):
+    """بتبعت رسالة في القناة بعد وقت عشوائي (من 3 لـ 10 دقايق)"""
+    # تأخير عشوائي
+    delay = random.randint(180, 600) # من 180 ثانية لـ 600 ثانية
+    time.sleep(delay)
+
+    # تجهيز الرسالة
+    message = f"""
+🎉 **تم صرف أرباح جديدة!** 🎉
+
+👤 **المستخدم:** {username}
+💰 **المبلغ:** {amount:.2f} USDT
+💳 **المحفظة:** `{wallet_address[:10]}...{wallet_address[-5:]}`
+
+🚀 **كن أنت التالي!** العب واجمع وسحب أرباحك الآن.
+    """
+
+    # إرسال الرسالة لتيليجرام
+    url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": settings.TELEGRAM_CHANNEL_ID,
+        "text": message,
+        "parse_mode": "Markdown"
+    }
+    try:
+        requests.post(url, json=payload)
+    except Exception as e:
+        print(f"Error sending Telegram message: {e}")
+
+
+
+# 1. دالة إرسال إشعار لقناة الأدمن (فوراً)
+def send_admin_notification(username, amount, wallet_address):
+    message = f"""
+🔔 **طلب سحب جديد!**
+
+👤 **المستخدم:** {username}
+💰 **المبلغ:** {amount:.2f} USDT
+💳 **المحفظة:** `{wallet_address}`
+
+⏳ **الحالة:** قيد المراجعة
+    """
+    url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": settings.TELEGRAM_ADMIN_CHAT_ID,
+        "text": message,
+        "parse_mode": "Markdown"
+    }
+    try:
+        requests.post(url, json=payload)
+    except Exception as e:
+        print(f"Error sending admin notification: {e}")
+
+
+
+
+
+# 2. دالة إرسال إعلان لقناة الجمهور (بعد وقت عشوائي)
+def send_public_announcement(username, amount, wallet_address):
+    # تأخير عشوائي (3 لـ 10 دقايق)
+    delay = random.randint(180, 600)
+    time.sleep(delay)
+
+    message = f"""
+🎉 **تم صرف أرباح جديدة!** 🎉
+
+👤 **المستخدم:** {username}
+💰 **المبلغ:** {amount:.2f} USDT
+💳 **المحفظة:** `{wallet_address[:10]}...{wallet_address[-5:]}`
+
+🚀 **كن أنت التالي!** العب واجمع وسحب أرباحك الآن.
+    """
+    url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": settings.TELEGRAM_CHANNEL_ID,
+        "text": message,
+        "parse_mode": "Markdown"
+    }
+    try:
+        requests.post(url, json=payload)
+    except Exception as e:
+        print(f"Error sending public announcement: {e}")
+
 
 
 
