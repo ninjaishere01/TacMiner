@@ -1,0 +1,82 @@
+[
+{
+  "model": "miner_app.worker",
+  "pk": 1,
+  "fields": {
+    "name": "Alpha",
+    "icon": "fa-person-digging",
+    "image": "/static/images/1.png",
+    "base_price": "100.00"
+  }
+},
+{
+  "model": "miner_app.worker",
+  "pk": 2,
+  "fields": {
+    "name": "Dragon",
+    "icon": "fa-dragon",
+    "image": "/static/images/2.png",
+    "base_price": "250.00"
+  }
+},
+{
+  "model": "miner_app.worker",
+  "pk": 3,
+  "fields": {
+    "name": "Hawk",
+    "icon": "fa-crow",
+    "image": "/static/images/3.png",
+    "base_price": "500.00"
+  }
+},
+{
+  "model": "miner_app.worker",
+  "pk": 4,
+  "fields": {
+    "name": "Killer",
+    "icon": "fa-user-ninja",
+    "image": "/static/images/4.png",
+    "base_price": "1000.00"
+  }
+},
+{
+  "model": "miner_app.worker",
+  "pk": 5,
+  "fields": {
+    "name": "Puglist",
+    "icon": "fa-hand-fist",
+    "image": "/static/images/5.png",
+    "base_price": "2500.00"
+  }
+},
+{
+  "model": "miner_app.worker",
+  "pk": 6,
+  "fields": {
+    "name": "Shooter",
+    "icon": "fa-gun",
+    "image": "/static/images/6.png",
+    "base_price": "5000.00"
+  }
+},
+{
+  "model": "miner_app.worker",
+  "pk": 7,
+  "fields": {
+    "name": "Romeo",
+    "icon": "fa-user-tie",
+    "image": "/static/images/7.png",
+    "base_price": "10000.00"
+  }
+},
+{
+  "model": "miner_app.worker",
+  "pk": 8,
+  "fields": {
+    "name": "Detector",
+    "icon": "fa-magnifying-glass",
+    "image": "/static/images/8.png",
+    "base_price": "25000.00"
+  }
+}
+]
