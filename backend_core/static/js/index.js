@@ -1,17 +1,3 @@
-// قراءة بيانات تيليجرام
-let telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-let telegramId = telegramUser ? telegramUser.id : 123456789;
-let username = telegramUser ? telegramUser.username || telegramUser.first_name : "newuser";
-
-// قراءة رابط الإحالة (لو موجود)
-let referralId = null;
-let startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
-if (startParam && startParam.startsWith('ref_')) {
-    referralId = startParam.replace('ref_', '');
-}
-
-
-
 
 // 1. تحديث الرصيد
 function updateBalanceUI(balance) {
