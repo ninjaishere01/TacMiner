@@ -45,7 +45,7 @@ MIDDLEWARE = [
 
 # إعدادات CORS
 CORS_ALLOW_ALL_ORIGINS = True # في التطوير بس، في الإنتاج نخليها محددة
-CSRF_TRUSTED_ORIGINS = ['http://127.0.0.1:8000', 'http://localhost:8000']
+CSRF_TRUSTED_ORIGINS = ['http://127.0.0.1:8000', 'http://localhost:8000', "https://*.onrender.com"]
 
 ROOT_URLCONF = 'backend_core.urls'
 
@@ -139,7 +139,8 @@ MAILERS = {
 
 
 
-
+# إعدادات Whitenoise للـ Static Files
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 
 
@@ -151,8 +152,6 @@ REST_FRAMEWORK = {
     ],
 }
 
-# إعدادات CSRF عشان المتصفح يقدر يبعت من نفس السيرفر
-CSRF_TRUSTED_ORIGINS = [
-    "http://127.0.0.1:8000",
-    "http://localhost:8000",
-]
+
+
+
