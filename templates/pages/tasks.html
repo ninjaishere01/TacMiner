@@ -146,12 +146,12 @@
             <i class="fa-brands fa-telegram text-info"></i>
           </div>
           <div class="task-info">
-            <h6>انضم لمجتمعنا</h6>
+            <h6> Tac Mining Company </h6>
             <span class="task-reward">+ 50 TAC</span>
           </div>
           <button
             class="btn btn-task-action"
-            onclick="claimChannelReward(1, 'https://t.me/YourChannel')"
+            onclick="claimChannelReward(1, 'https://t.me/Tac_mining_company')"
           >
             اذهب
           </button>
@@ -163,12 +163,12 @@
             <i class="fa-brands fa-telegram text-info"></i>
           </div>
           <div class="task-info">
-            <h6>انضم لمجتمعنا 2</h6>
+            <h6> Tac Mining Community </h6>
             <span class="task-reward">+ 50 TAC</span>
           </div>
           <button
             class="btn btn-task-action"
-            onclick="claimChannelReward(2, 'https://t.me/NewsChannel')"
+            onclick="claimChannelReward(2, 'https://t.me/Tac_mining_community')"
           >
             اذهب
           </button>
@@ -180,12 +180,12 @@
             <i class="fa-brands fa-telegram text-info"></i>
           </div>
           <div class="task-info">
-            <h6>انضم لقناة الشركاء</h6>
+            <h6> Tac Mining Chat </h6>
             <span class="task-reward">+ 50 TAC</span>
           </div>
           <button
             class="btn btn-task-action"
-            onclick="claimChannelReward(3, 'https://t.me/PartnerChannel')"
+            onclick="claimChannelReward(3, 'https://t.me/Tac_mining_chat')"
           >
             اذهب
           </button>
@@ -196,15 +196,18 @@
             <i class="fa-brands fa-telegram text-info"></i>
           </div>
           <div class="task-info">
-            <h6>انضم لقناة الشركاء</h6>
+            <h6> Tac Mining Withdrawal </h6>
             <span class="task-reward">+ 50 TAC</span>
           </div>
           <button
             class="btn btn-task-action"
-            onclick="claimChannelReward(4, 'https://t.me/PartnerChannel')"
+            onclick="claimChannelReward(4, 'https://t.me/Tac_mining_withdrawal')"
           >
             اذهب
           </button>
+        </div>
+        <!-- dev فاضي 5 -->
+        <div class="task-card">
         </div>
       </div>
     </main>
@@ -251,6 +254,7 @@
 
     <!-- السكريبتات -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="{% static 'js/game.js' %}"></script>
     <script src="{% static 'js/index.js' %}"></script>
 
@@ -266,7 +270,8 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            telegram_id: 123456789,
+            telegram_id: telegramId,
+            username: username,
             task_name: `channel_${taskId}`,
           }),
         })
@@ -306,7 +311,8 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            telegram_id: 123456789,
+            telegram_id: telegramId,
+            username: username,
             ad_type: "activation",
           }),
         })
@@ -360,7 +366,7 @@
         fetch("/api/watch-ad/", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ telegram_id: 123456789, ad_type: "boost" }),
+          body: JSON.stringify({ telegram_id: telegramId, username: username, ad_type: "boost" }),
         })
           .then((res) => res.json())
           .then((data) => {
@@ -522,8 +528,8 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            telegram_id: 123456789,
-            username: "Mohamed_messi",
+            telegram_id: telegram_id,
+            username: username,
           }),
         })
           .then((res) => res.json())

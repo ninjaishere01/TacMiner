@@ -8,7 +8,8 @@ class User(models.Model):
 
     # الحقل الجديد
     referral_balance = models.DecimalField(max_digits=18, decimal_places=8, default=0.00000000, verbose_name="رصيد الإحالات") # <-- ضيف ده
-    
+    # الحقل الجديد: مين اللي دعا اليوزر ده
+    referred_by = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='referrals', verbose_name="دعوة من")
     # الأرصدة
     balance = models.DecimalField(max_digits=18, decimal_places=8, default=0.00000000, verbose_name="رصيد TAC")
     usdt_balance = models.DecimalField(max_digits=18, decimal_places=8, default=0.00000000, verbose_name="رصيد USDT")

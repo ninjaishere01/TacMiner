@@ -44,9 +44,9 @@ def calculate_user_production(user):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login_or_register(request):
-    # بنستقبل الـ telegram_id من الفرونت إند
     telegram_id = request.data.get('telegram_id')
     username = request.data.get('username', '')
+    referral_id = request.data.get('referral_id') # <-- جديد
 
     if not telegram_id:
         return Response({"error": "Telegram ID is required"}, status=400)
@@ -57,12 +57,21 @@ def login_or_register(request):
         defaults={'username': username}
     )
 
-    # بنجيب العمال اللي معاه (لو موجودين)
+    # لو المستخدم جديد، وفيه referral_id، بنربطه بصاحب الدعوة
+    if created and referral_id:
+        try:
+            referrer = User.objects.get(telegram_id=referral_id)
+            user.referred_by = referrer
+            user.save()
+        except User.DoesNotExist:
+            pass # لو صاحب الدعوة مش موجود، متعملش حاجة
+
+    # بنجيب العمال اللي معاه
     user_workers = {}
     for uw in user.workers.all():
         user_workers[uw.worker.id] = uw.level
 
-    # بنحسب الوقت المتبقي للمضاعفة لو موجود
+    # بنحسب الوقت المتبقي للمضاعفة (ساعة واحدة)
     time_left = 0
     if user.last_boost_time:
         boost_end_time = user.last_boost_time + timedelta(hours=1)
@@ -70,32 +79,30 @@ def login_or_register(request):
         if now < boost_end_time:
             time_left = int((boost_end_time - now).total_seconds())
         else:
-            # لو خلصت الساعة، بنمسح وقت البوست عشان يبدأ من جديد
-            user.last_boost_time = None
-            user.boost_multiplier = 1.0
-            user.save()
+            if user.boost_multiplier != 1.0:
+                user.boost_multiplier = 1.0
+                user.save()
 
     # بنحسب الإنتاج الحالي للعمال
     production = calculate_user_production(user)
+
     return Response({
         "message": "Success",
         "user": {
-            "production": production,
             "telegram_id": user.telegram_id,
             "username": user.username,
             "balance": float(user.balance),
             "usdt_balance": float(user.usdt_balance),
+            "referral_balance": float(user.referral_balance),
             "workers": user_workers,
             "is_partner": user.is_partner,
             "is_wallet_verified": user.is_wallet_verified,
             "ads_watched_today": user.ads_watched_today,
-            "boost_ads_watched": user.boost_ads_watched, # <--- تأكد إن دي موجودة
+            "boost_ads_watched": user.boost_ads_watched,
             "last_boost_time": user.last_boost_time.isoformat() if user.last_boost_time else None,
-            "time_left": time_left,
-            "referral_balance": float(user.referral_balance), 
+            "time_left": time_left
         }
     })
-
 
 
 

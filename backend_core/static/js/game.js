@@ -1,3 +1,16 @@
+// قراءة بيانات تيليجرام
+let telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+let telegramId = telegramUser ? telegramUser.id : 123456789;
+let username = telegramUser ? telegramUser.username || telegramUser.first_name : "newuser";
+
+// قراءة رابط الإحالة (لو موجود)
+let referralId = null;
+let startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
+if (startParam && startParam.startsWith('ref_')) {
+    referralId = startParam.replace('ref_', '');
+}
+
+
 const allWorkers = [
   {
     id: 1,
@@ -73,36 +86,42 @@ function savePlayerData(data) {
   if (typeof updateBalanceUI === "function") updateBalanceUI();
 }
 
-
 function buyWorker(workerId, price) {
-  fetch('/api/upgrade/', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ telegram_id: 123456789, worker_id: workerId })
+  fetch("/api/upgrade/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ telegram_id: telegramId, worker_id: workerId, referral_id: referralId }), // <-- غيرناها لـ telegramId
   })
-  .then(res => res.json())
-  .then(data => {
-    if (data.message === "Upgraded!") {
-      updateBalanceUI(data.new_balance);
-      updateUpgradeUI();
-      
-      Swal.fire({
-        title: "تمت الترقية!",
-        text: `تم ترقية العامل للمستوى ${data.new_level}.`,
-        icon: "success",
-        timer: 3500,
-        showConfirmButton: false,
-        customClass: { popup: "swal-custom-popup", title: "swal-custom-title" }
-      });
-    } else {
-      Swal.fire({
-        title: "رصيدك غير كافي!",
-        text: "تحتاج المزيد من الجولد لترقية هذا العامل.",
-        icon: "error",
-        confirmButtonText: "حسناً",
-        customClass: { popup: "swal-custom-popup", title: "swal-custom-title", confirmButton: "swal-confirm-btn" },
-      });
-    }
-  })
-  .catch(err => console.error(err));
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.message === "Upgraded!") {
+        updateBalanceUI(data.new_balance);
+        updateUpgradeUI();
+
+        Swal.fire({
+          title: "تمت الترقية!",
+          text: `تم ترقية العامل للمستوى ${data.new_level}.`,
+          icon: "success",
+          timer: 3500,
+          showConfirmButton: false,
+          customClass: {
+            popup: "swal-custom-popup",
+            title: "swal-custom-title",
+          },
+        });
+      } else {
+        Swal.fire({
+          title: "رصيدك غير كافي!",
+          text: "تحتاج المزيد من الجولد لترقية هذا العامل.",
+          icon: "error",
+          confirmButtonText: "حسناً",
+          customClass: {
+            popup: "swal-custom-popup",
+            title: "swal-custom-title",
+            confirmButton: "swal-confirm-btn",
+          },
+        });
+      }
+    })
+    .catch((err) => console.error(err));
 }

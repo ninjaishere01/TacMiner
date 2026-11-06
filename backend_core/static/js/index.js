@@ -1,3 +1,18 @@
+// قراءة بيانات تيليجرام
+let telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+let telegramId = telegramUser ? telegramUser.id : 123456789;
+let username = telegramUser ? telegramUser.username || telegramUser.first_name : "newuser";
+
+// قراءة رابط الإحالة (لو موجود)
+let referralId = null;
+let startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
+if (startParam && startParam.startsWith('ref_')) {
+    referralId = startParam.replace('ref_', '');
+}
+
+
+
+
 // 1. تحديث الرصيد
 function updateBalanceUI(balance) {
   const balanceEl = document.getElementById("global-balance");
@@ -20,8 +35,9 @@ function renderHomeGrid() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          telegram_id: 123456789,
-          username: "Mohamed_messi",
+          telegram_id: telegramId,
+          username: username,
+          referral_id: referralId
         }),
       })
         .then((res) => res.json())
@@ -69,8 +85,9 @@ function updateUpgradeUI() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          telegram_id: 123456789,
-          username: "Mohamed_messi",
+          telegram_id: telegramId,
+          referral_id: referralId,
+          username: username,
         }),
       })
         .then((res) => res.json())
@@ -149,7 +166,7 @@ function collectGold() {
     fetch("/api/collect/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ telegram_id: 123456789, amount: storage }),
+      body: JSON.stringify({ telegram_id: telegramId, amount: storage, referral_id: referralId}),
     })
       .then((res) => res.json())
       .then((data) => {
@@ -194,13 +211,12 @@ function collectGold() {
 }
 
 // 7. محاكاة زيادة الجولد (التعدين)
-let miningInterval = null; // متغير عشان نمنع تكرار التشغيل
+let miningInterval = null;
 
 function simulateMining() {
   let storageEl = document.getElementById("current-gold");
   if (storageEl) {
     let storage = parseFloat(localStorage.getItem("mineStorage")) || 0;
-    // بنجيب الربح في الثانية (لو مش موجود بنستخدم 0)
     let perSecond = window.productionPerSecond || 0;
 
     if (storage < 500) {
@@ -212,19 +228,77 @@ function simulateMining() {
 }
 
 // 8. دالة رسم لوحة المتصدرين
-// 8. دالة رسم لوحة المتصدرين
-// بنعمل مصفوفة عامة عشان نقدر نعدلها
 let topPlayers = [
-  { rank: 1, name: "CryptoKing", score: 1250000, class: "top-1", icon: "fa-crown text-warning" },
-  { rank: 2, name: "Luna_Miner", score: 980500, class: "top-2", icon: "fa-user-astronaut text-light" },
-  { rank: 3, name: "ShadowStrike", score: 850000, class: "top-3", icon: "fa-user-ninja text-danger" },
-  { rank: 4, name: "NeonViper", score: 720000, class: "normal", icon: "fa-user text-info" },
-  { rank: 5, name: "GhostProtocol", score: 680000, class: "normal", icon: "fa-user text-info" },
-  { rank: 6, name: "Titanfall", score: 610000, class: "normal", icon: "fa-user text-info" },
-  { rank: 7, name: "VortexX", score: 550000, class: "normal", icon: "fa-user text-info" },
-  { rank: 8, name: "CyberWolf", score: 490000, class: "normal", icon: "fa-user text-info" },
-  { rank: 9, name: "Rogue_AI", score: 420000, class: "normal", icon: "fa-user text-info" },
-  { rank: 10, name: "PixelGhost", score: 350000, class: "normal", icon: "fa-user text-info" }
+  {
+    rank: 1,
+    name: "CryptoKing",
+    score: 1250000,
+    class: "top-1",
+    icon: "fa-crown text-warning",
+  },
+  {
+    rank: 2,
+    name: "Luna_Miner",
+    score: 980500,
+    class: "top-2",
+    icon: "fa-user-astronaut text-light",
+  },
+  {
+    rank: 3,
+    name: "ShadowStrike",
+    score: 850000,
+    class: "top-3",
+    icon: "fa-user-ninja text-danger",
+  },
+  {
+    rank: 4,
+    name: "NeonViper",
+    score: 720000,
+    class: "normal",
+    icon: "fa-user text-info",
+  },
+  {
+    rank: 5,
+    name: "GhostProtocol",
+    score: 680000,
+    class: "normal",
+    icon: "fa-user text-info",
+  },
+  {
+    rank: 6,
+    name: "Titanfall",
+    score: 610000,
+    class: "normal",
+    icon: "fa-user text-info",
+  },
+  {
+    rank: 7,
+    name: "VortexX",
+    score: 550000,
+    class: "normal",
+    icon: "fa-user text-info",
+  },
+  {
+    rank: 8,
+    name: "CyberWolf",
+    score: 490000,
+    class: "normal",
+    icon: "fa-user text-info",
+  },
+  {
+    rank: 9,
+    name: "Rogue_AI",
+    score: 420000,
+    class: "normal",
+    icon: "fa-user text-info",
+  },
+  {
+    rank: 10,
+    name: "PixelGhost",
+    score: 350000,
+    class: "normal",
+    icon: "fa-user text-info",
+  },
 ];
 
 function renderLeaderboard() {
@@ -233,9 +307,10 @@ function renderLeaderboard() {
 
   let html = "";
 
-  topPlayers.forEach(player => {
-    let itemClass = player.class === "normal" ? "leader-item" : `leader-item ${player.class}`;
-    
+  topPlayers.forEach((player) => {
+    let itemClass =
+      player.class === "normal" ? "leader-item" : `leader-item ${player.class}`;
+
     let badgeColor = "";
     if (player.rank === 1) badgeColor = "bg-warning text-dark";
     else if (player.rank === 2) badgeColor = "bg-light text-dark";
@@ -263,7 +338,6 @@ function renderLeaderboard() {
     <div class="leader-item my-rank" style="margin-top: 10px; border: 2px solid var(--cyan); padding: 8px 10px;">
       <div class="leader-avatar" style="width: 28px; height: 28px; margin-right: 8px; font-size: 12px;">
       </div>
-     
       <div class="leader-score" style="font-size: 11px;">
       ----------------------------------------
       </div>
@@ -273,31 +347,35 @@ function renderLeaderboard() {
   container.innerHTML = html;
 }
 
-// دالة تحديث الأرباح عشوائياً كل دقيقة
+// دالة تحديث الأرباح عشوائياً كل 30 ثانية
 function updateLeaderboardScores() {
-  topPlayers.forEach(player => {
-    // بنزود الرقم بين 100 و 300 جولد عشوائي
+  topPlayers.forEach((player) => {
     let randomIncrease = Math.floor(Math.random() * 200) + 100;
     player.score += randomIncrease;
   });
 
-  // بنرتب اللاعبين تنازلياً حسب الرصيد
   topPlayers.sort((a, b) => b.score - a.score);
-  
-  // بنعيد ترتيب المراكز (1، 2، 3...)
+
   topPlayers.forEach((player, index) => {
     player.rank = index + 1;
-    // بنحدث الكلاس واللون حسب المركز الجديد
-    if (player.rank === 1) { player.class = "top-1"; player.icon = "fa-crown text-warning"; }
-    else if (player.rank === 2) { player.class = "top-2"; player.icon = "fa-user-astronaut text-light"; }
-    else if (player.rank === 3) { player.class = "top-3"; player.icon = "fa-user-ninja text-danger"; }
-    else { player.class = "normal"; player.icon = "fa-user text-info"; }
+    if (player.rank === 1) {
+      player.class = "top-1";
+      player.icon = "fa-crown text-warning";
+    } else if (player.rank === 2) {
+      player.class = "top-2";
+      player.icon = "fa-user-astronaut text-light";
+    } else if (player.rank === 3) {
+      player.class = "top-3";
+      player.icon = "fa-user-ninja text-danger";
+    } else {
+      player.class = "normal";
+      player.icon = "fa-user text-info";
+    }
   });
 
-  renderLeaderboard(); // بنعيد رسم اللوحة
+  renderLeaderboard();
 }
 
-// بنشغل التحديث كل 30 ثانية (30000 ملي ثانية)
 setInterval(updateLeaderboardScores, 30000);
 
 // 9. التشغيل عند تحميل الصفحة
@@ -306,15 +384,13 @@ document.addEventListener("DOMContentLoaded", () => {
   fetch("/api/login/", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ telegram_id: 123456789, username: "Mohamed_messi" }),
+    body: JSON.stringify({ telegram_id: telegramId, username: username , referral_id: referralId }),
   })
     .then((res) => res.json())
     .then((data) => {
       if (data.message === "Success") {
-        // --- أ. تحديث الرصيد ---
         updateBalanceUI(data.user.balance);
 
-        // --- ب. تحديث سعة المنجم ---
         let totalLevels = 0;
         for (let workerId in data.user.workers) {
           totalLevels += data.user.workers[workerId];
@@ -331,12 +407,10 @@ document.addEventListener("DOMContentLoaded", () => {
           capacityText.innerText = `${totalLevels} / ${maxCapacity}`;
         }
 
-        // --- ج. رسم العمال في الصفحة الرئيسية والتطوير والمتصدرين ---
         renderHomeGrid();
         updateUpgradeUI();
         renderLeaderboard();
 
-        // --- د. تحديث الأرباح والإحصائيات وحساب التعدين ---
         if (data.user.production) {
           const statHourEl = document.getElementById("stat-hour");
           const statDayEl = document.getElementById("stat-day");
@@ -348,17 +422,14 @@ document.addEventListener("DOMContentLoaded", () => {
             statMonthEl.innerText = data.user.production.per_month.toFixed(2);
           }
 
-          // تخزين الربح في الثانية
           window.productionPerSecond = data.user.production.per_hour / 3600;
         }
 
-        // --- هـ. بدء محاكاة التعدين (بعد ما الداتا توصل) ---
         if (document.getElementById("mine-grid")) {
-          if (miningInterval) clearInterval(miningInterval); // منع التكرار
+          if (miningInterval) clearInterval(miningInterval);
           miningInterval = setInterval(simulateMining, 1000);
         }
 
-        // تحديث العداد الحالي من المخزن
         let storage = parseFloat(localStorage.getItem("mineStorage")) || 0;
         const goldEl = document.getElementById("current-gold");
         if (goldEl) goldEl.innerText = storage.toFixed(4);
