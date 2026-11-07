@@ -67,7 +67,7 @@
           <h5
             class="text-white fw-bold mb-1 d-flex justify-content-center align-items-center gap-2"
           >
-            new user
+            <span id="profile-username">new user</span>
 
             <!-- أيقونة التوثيق (تظهر لو المحفظة مربوطة) -->
             <i
@@ -224,30 +224,29 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            telegram_id: 123456789,
-            username: "Mohamed_messi",
+            telegram_id: telegramId,
+            username: username,
+            referral_id: referralId,
           }),
         })
           .then((res) => res.json())
           .then((data) => {
             if (data.message === "Success") {
-              // 1. تحديث الرصيد
               const balanceEl = document.getElementById("profile-balance");
               if (balanceEl)
                 balanceEl.innerText = data.user.balance.toLocaleString("en-US");
 
-              // 2. إظهار شارة الشريك
+              const nameEl = document.getElementById("profile-username");
+              if (nameEl && data.user.username) nameEl.innerText = data.user.username;
+
               if (data.user.is_partner) {
-                document
-                  .getElementById("partner-badge")
-                  .classList.remove("d-none");
+                const partnerBadge = document.getElementById("partner-badge");
+                if (partnerBadge) partnerBadge.classList.remove("d-none");
               }
 
-              // 3. إظهار علامة التوثيق (لو المحفظة مربوطة)
               if (data.user.is_wallet_verified) {
-                document
-                  .getElementById("verified-badge")
-                  .classList.remove("d-none");
+                const verifiedBadge = document.getElementById("verified-badge");
+                if (verifiedBadge) verifiedBadge.classList.remove("d-none");
               }
             }
           })
