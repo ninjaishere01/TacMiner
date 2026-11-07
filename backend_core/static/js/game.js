@@ -99,16 +99,12 @@ function buyWorker(workerId, price) {
         updateBalanceUI(data.new_balance);
         updateUpgradeUI();
 
-        // تحديث الإنتاج
         if (data.production) {
-          window.productionPerSecond = data.production.per_hour / 3600;
-          // تحديث الإحصائيات
-          document.getElementById("stat-hour").innerText =
-            data.production.per_hour.toFixed(2);
-          document.getElementById("stat-day").innerText =
-            data.production.per_day.toFixed(2);
-          document.getElementById("stat-month").innerText =
-            data.production.per_month.toFixed(2);
+          if (typeof window.applyProduction === "function") {
+            window.applyProduction(data.production);
+          } else {
+            window.productionPerSecond = Number(data.production.per_hour) / 3600;
+          }
         }
 
         Swal.fire({

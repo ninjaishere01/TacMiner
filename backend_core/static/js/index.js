@@ -202,17 +202,32 @@ function collectGold() {
 // 7. محاكاة زيادة الجولد (التعدين)
 let miningInterval = null;
 
+function applyProduction(production) {
+  if (!production) return;
+  const perSecond = Number(production.per_hour) / 3600;
+  if (!Number.isFinite(perSecond)) return;
+
+  window.productionPerSecond = perSecond;
+
+  const statHourEl = document.getElementById("stat-hour");
+  const statDayEl = document.getElementById("stat-day");
+  const statMonthEl = document.getElementById("stat-month");
+  if (statHourEl) statHourEl.innerText = Number(production.per_hour).toFixed(2);
+  if (statDayEl) statDayEl.innerText = Number(production.per_day).toFixed(2);
+  if (statMonthEl) statMonthEl.innerText = Number(production.per_month).toFixed(2);
+}
+
+window.applyProduction = applyProduction;
+
 function simulateMining() {
   let storageEl = document.getElementById("current-gold");
   if (storageEl) {
     let storage = parseFloat(localStorage.getItem("mineStorage")) || 0;
     let perSecond = window.productionPerSecond || 0;
 
-    // بنزود الرقم
-    if (storage < 500) {
+    if (storage < 500 && perSecond > 0) {
       storage += perSecond;
       localStorage.setItem("mineStorage", storage);
-      // بنعرض الرقم بـ 4 أرقام عشرية عشان يبان التغيير
       storageEl.innerText = storage.toFixed(4);
     }
   }
@@ -405,19 +420,7 @@ document.addEventListener("DOMContentLoaded", () => {
         updateUpgradeUI();
         renderLeaderboard();
 
-        if (data.user.production) {
-          const statHourEl = document.getElementById("stat-hour");
-          const statDayEl = document.getElementById("stat-day");
-          const statMonthEl = document.getElementById("stat-month");
-
-          if (statHourEl && statDayEl && statMonthEl) {
-            statHourEl.innerText = data.user.production.per_hour.toFixed(2);
-            statDayEl.innerText = data.user.production.per_day.toFixed(2);
-            statMonthEl.innerText = data.user.production.per_month.toFixed(2);
-          }
-
-          window.productionPerSecond = data.user.production.per_hour / 3600;
-        }
+        applyProduction(data.user.production);
 
         if (document.getElementById("mine-grid")) {
           if (miningInterval) clearInterval(miningInterval);

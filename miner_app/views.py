@@ -115,6 +115,7 @@ def login_or_register(request):
             "last_boost_time": user.last_boost_time.isoformat() if user.last_boost_time else None,
             "time_left": time_left,
             "referrals": referrals_list,
+            "production": production,
         }
     })
 
