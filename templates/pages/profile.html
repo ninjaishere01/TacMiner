@@ -57,13 +57,6 @@
           <div class="profile-avatar-box">
             <img src="{% static 'images/8.png' %}" alt="" width="60" />
           </div>
-          <span
-            id="partner-badge"
-            class="badge bg-warning text-dark ms-1 d-none"
-            style="font-size: 12px; vertical-align: middle"
-          >
-            <i class="fa-solid fa-crown"></i> شريك
-          </span>
           <h5
             class="text-white fw-bold mb-1 d-flex justify-content-center align-items-center gap-2"
           >
@@ -239,7 +232,10 @@
               const nameEl = document.getElementById("profile-username");
               if (nameEl && data.user.username) nameEl.innerText = data.user.username;
 
-              if (data.user.is_partner) {
+              const referralsCount = Number.isFinite(Number(data.user.referrals_count))
+                ? Number(data.user.referrals_count)
+                : (data.user.referrals || []).length;
+              if (referralsCount >= 10) {
                 const partnerBadge = document.getElementById("partner-badge");
                 if (partnerBadge) partnerBadge.classList.remove("d-none");
               }
