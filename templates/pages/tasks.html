@@ -270,7 +270,7 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            telegramId: telegramId,
+            telegram_id: telegramId,
             username: username,
             task_name: `channel_${taskId}`,
           }),
@@ -311,7 +311,7 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            telegramId: telegramId,
+            telegram_id: telegramId,
             username: username,
             ad_type: "activation",
           }),
@@ -366,7 +366,7 @@
         fetch("/api/watch-ad/", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ telegramId: telegramId, username: username, ad_type: "boost" }),
+          body: JSON.stringify({ telegram_id: telegramId, username: username, ad_type: "boost" }),
         })
           .then((res) => res.json())
           .then((data) => {
@@ -528,7 +528,7 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            telegramId: telegramId,
+            telegram_id: telegramId,
             username: username,
           }),
         })

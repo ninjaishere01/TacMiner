@@ -120,7 +120,7 @@
         const container = document.getElementById("history-container");
 
         // بنجيب الطلبات من الباك إند
-        fetch(`/api/withdraw-history/?telegram_id=123456789`)
+        fetch(`/api/withdraw-history/?telegram_id=${telegramId}`)
           .then((res) => res.json())
           .then((requests) => {
             // لو مفيش طلبات

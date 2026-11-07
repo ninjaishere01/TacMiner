@@ -126,6 +126,9 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'backend_core', 'static'),
 ]
 
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+
 
 
 # Email
@@ -137,10 +140,6 @@ MAILERS = {
     },
 }
 
-
-
-# إعدادات Whitenoise للـ Static Files
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 
 
