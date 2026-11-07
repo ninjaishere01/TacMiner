@@ -1,15 +1,16 @@
 // قراءة بيانات تيليجرام
 let telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
 let telegramId = telegramUser ? telegramUser.id : 123456789;
-let username = telegramUser ? telegramUser.username || telegramUser.first_name : "newuser";
+let username = telegramUser
+  ? telegramUser.username || telegramUser.first_name
+  : "newuser";
 
 // قراءة رابط الإحالة (لو موجود)
 let referralId = null;
 let startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
-if (startParam && startParam.startsWith('ref_')) {
-    referralId = startParam.replace('ref_', '');
+if (startParam && startParam.startsWith("ref_")) {
+  referralId = startParam.replace("ref_", "");
 }
-
 
 const allWorkers = [
   {
@@ -90,13 +91,28 @@ function buyWorker(workerId, price) {
   fetch("/api/upgrade/", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ telegram_id: telegramId, worker_id: workerId, referral_id: referralId }), // <-- غيرناها لـ telegramId
+    body: JSON.stringify({ telegram_id: telegramId, worker_id: workerId }),
   })
     .then((res) => res.json())
     .then((data) => {
       if (data.message === "Upgraded!") {
         updateBalanceUI(data.new_balance);
         updateUpgradeUI();
+
+        // تحديث الإنتاج في الفرونت إند
+        if (data.production) {
+          window.productionPerSecond = data.production.per_hour / 3600;
+          // تحديث الإحصائيات
+          const statHourEl = document.getElementById("stat-hour");
+          const statDayEl = document.getElementById("stat-day");
+          const statMonthEl = document.getElementById("stat-month");
+          if (statHourEl)
+            statHourEl.innerText = data.production.per_hour.toFixed(2);
+          if (statDayEl)
+            statDayEl.innerText = data.production.per_day.toFixed(2);
+          if (statMonthEl)
+            statMonthEl.innerText = data.production.per_month.toFixed(2);
+        }
 
         Swal.fire({
           title: "تمت الترقية!",

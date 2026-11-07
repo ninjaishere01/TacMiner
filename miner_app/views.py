@@ -162,6 +162,7 @@ def collect_gold(request):
     
 
 
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def upgrade_worker(request):
@@ -175,10 +176,8 @@ def upgrade_worker(request):
         user = User.objects.get(telegram_id=telegram_id)
         worker = Worker.objects.get(id=worker_id)
         
-        # بنجيب العامل بتاع اليوزر أو بنعمله لو مش موجود
         user_worker, created = UserWorker.objects.get_or_create(user=user, worker=worker)
         
-        # حساب السعر (السعر الأساسي * 1.5 ^ المستوى الحالي)
         current_level = user_worker.level
         price = worker.base_price * (Decimal('1.5') ** current_level)
 
@@ -187,16 +186,23 @@ def upgrade_worker(request):
             user_worker.level += 1
             user.save()
             user_worker.save()
+
+            # احسب الإنتاج الجديد (بعد الترقية)
+            production = calculate_user_production(user)
+
             return Response({
                 "message": "Upgraded!", 
                 "new_balance": float(user.balance),
-                "new_level": user_worker.level
+                "new_level": user_worker.level,
+                "production": production 
             })
         else:
             return Response({"error": "Insufficient balance"}, status=400)
             
     except (User.DoesNotExist, Worker.DoesNotExist):
         return Response({"error": "User or Worker not found"}, status=404)
+
+
 
 
 
