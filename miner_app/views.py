@@ -92,6 +92,12 @@ def login_or_register(request):
 
     # بنحسب الإنتاج الحالي للعمال
     production = calculate_user_production(user)
+    referrals_list = []
+    for ref in user.referrals.all(): # referrals هو related_name
+        referrals_list.append({
+            "username": ref.username,
+            "balance": float(ref.balance)
+        })
 
     return Response({
         "message": "Success",
@@ -107,7 +113,8 @@ def login_or_register(request):
             "ads_watched_today": user.ads_watched_today,
             "boost_ads_watched": user.boost_ads_watched,
             "last_boost_time": user.last_boost_time.isoformat() if user.last_boost_time else None,
-            "time_left": time_left
+            "time_left": time_left,
+            "referrals": referrals_list,
         }
     })
 

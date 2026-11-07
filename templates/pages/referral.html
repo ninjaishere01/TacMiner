@@ -77,7 +77,8 @@
           <div class="modern-input-group">
             <input
               type="text"
-              value="https://t.me/Bot?start=ref_123"
+              value=""
+              placeholder="جاري تحميل الرابط..."
               readonly
               id="ref-link"
             />
@@ -95,7 +96,7 @@
                 <i class="fa-solid fa-user-group"></i>
               </div>
               <div class="stat-info-modern">
-                <h3>12</h3>
+                <h3 id="friends-count">0</h3>
                 <small>أصدقاء مدعوين</small>
               </div>
             </div>
@@ -192,51 +193,8 @@
             <i class="fa-solid fa-users text-cyan"></i> أصدقائي المدعوين
           </h5>
           <div class="friends-list">
-            <div class="friend-item">
-              <div class="friend-avatar bg-blue-light">
-                <i class="fa-solid fa-user-astronaut"></i>
-              </div>
-              <div class="friend-info">
-                <span class="friend-name">Ahmed_Miner</span>
-                <span class="friend-status text-success"
-                  ><i class="fa-solid fa-circle-check"></i> نشط</span
-                >
-              </div>
-              <div class="friend-earnings">
-                <span class="earn-val">+ 350</span>
-                <small>جولد / اليوم</small>
-              </div>
-            </div>
-            <div class="friend-item">
-              <div class="friend-avatar bg-blue-light">
-                <i class="fa-solid fa-user-ninja"></i>
-              </div>
-              <div class="friend-info">
-                <span class="friend-name">Omar_Pro</span>
-                <span class="friend-status text-success"
-                  ><i class="fa-solid fa-circle-check"></i> نشط</span
-                >
-              </div>
-              <div class="friend-earnings">
-                <span class="earn-val">+ 120</span>
-                <small>جولد / اليوم</small>
-              </div>
-            </div>
-            <div class="friend-item">
-              <div class="friend-avatar bg-secondary bg-opacity-25">
-                <i class="fa-solid fa-user text-muted"></i>
-              </div>
-              <div class="friend-info">
-                <span class="friend-name">Sara_Gold</span>
-                <span class="friend-status text-muted"
-                  ><i class="fa-solid fa-clock"></i> لم ينضم بعد</span
-                >
-              </div>
-              <div class="friend-earnings">
-                <span class="earn-val text-muted">0</span>
-                <small>جولد / اليوم</small>
-              </div>
-            </div>
+            <!-- سيتم توليد القائمة هنا بالجافاسكريبت -->
+            <p class="text-center text-muted">جاري تحميل الأصدقاء...</p>
           </div>
         </div>
       </div>
@@ -290,24 +248,79 @@
     <script>
       let currentReferralBalance = 0;
 
-      // 1. دالة سحب جولد الإحالة
+      // 1. دالة نسخ الرابط
+      function copyLink() {
+        const refLinkInput = document.getElementById("ref-link");
+
+        // الطريقة الحديثة
+        if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard
+            .writeText(refLinkInput.value)
+            .then(() => {
+              Swal.fire({
+                title: "تم النسخ!",
+                text: "تم نسخ رابط الإحالة بنجاح.",
+                icon: "success",
+                timer: 1500,
+                showConfirmButton: false,
+                customClass: {
+                  popup: "swal-custom-popup",
+                  title: "swal-custom-title",
+                },
+              });
+            })
+            .catch((err) => {
+              // الطريقة القديمة (Fallback)
+              refLinkInput.select();
+              refLinkInput.setSelectionRange(0, 99999);
+              document.execCommand("copy");
+              Swal.fire({
+                title: "تم النسخ!",
+                text: "تم نسخ رابط الإحالة بنجاح.",
+                icon: "success",
+                timer: 1500,
+                showConfirmButton: false,
+                customClass: {
+                  popup: "swal-custom-popup",
+                  title: "swal-custom-title",
+                },
+              });
+            });
+        } else {
+          // الطريقة القديمة
+          refLinkInput.select();
+          refLinkInput.setSelectionRange(0, 99999);
+          document.execCommand("copy");
+          Swal.fire({
+            title: "تم النسخ!",
+            text: "تم نسخ رابط الإحالة بنجاح.",
+            icon: "success",
+            timer: 1500,
+            showConfirmButton: false,
+            customClass: {
+              popup: "swal-custom-popup",
+              title: "swal-custom-title",
+            },
+          });
+        }
+      }
+
+      // 2. دالة سحب جولد الإحالة
       function collectReferralGold() {
         fetch("/api/collect-referral/", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            telegram_id: telegramId, // <-- تم التصحيح
+            telegram_id: telegramId,
             username: username,
           }),
         })
           .then((res) => res.json())
           .then((data) => {
             if (data.message === "Referral Gold Collected!") {
-              // تحديث الرصيد في الهيدر
               document.getElementById("global-balance").innerText =
                 data.new_balance.toLocaleString("en-US");
 
-              // تصفير رصيد الإحالة في الشاشة
               currentReferralBalance = 0;
               document.getElementById("referral-balance-display").innerText =
                 "0.00";
@@ -331,8 +344,8 @@
           });
       }
 
-      // 2. نظام مكافآت الدعوة
-      let currentFriendsCount = 12; // (مؤقتاً، هنربطه بالباك إند بعدين)
+      // 3. نظام مكافآت الدعوة
+      let currentFriendsCount = 0; // هيتم تحديثها من الباك إند
 
       function checkMilestones() {
         const milestones = [
@@ -376,7 +389,7 @@
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              telegram_id: telegramId, // <-- تم التصحيح
+              telegram_id: telegramId,
               username: username,
               task_name: `milestone_${friendCount}`,
             }),
@@ -409,21 +422,20 @@
         }
       }
 
-      // 3. التشغيل عند تحميل الصفحة
+      // 4. التشغيل عند تحميل الصفحة
       document.addEventListener("DOMContentLoaded", () => {
         // تحديث رابط الإحالة
         const refLinkInput = document.getElementById("ref-link");
         if (refLinkInput && telegramId) {
           refLinkInput.value = `https://t.me/TacMinerApp_Bot?start=ref_${telegramId}`;
-          // غير YourBotUsername لاسم البوت بتاعك (من غير @)
         }
 
-        // بنجيب رصيد الإحالة من الباك إند
+        // بنجيب بيانات اليوزر (فيها رصيد الإحالة والأصدقاء)
         fetch("/api/login/", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            telegram_id: telegramId, // <-- تم التصحيح
+            telegram_id: telegramId,
             username: username,
           }),
         })
@@ -433,11 +445,45 @@
               currentReferralBalance = data.user.referral_balance || 0;
               document.getElementById("referral-balance-display").innerText =
                 currentReferralBalance.toFixed(2);
+
+              // تحديث عدد الأصدقاء
+              if (data.user.referrals) {
+                currentFriendsCount = data.user.referrals.length;
+                document.getElementById("friends-count").innerText =
+                  currentFriendsCount;
+              }
+
+              // رسم قائمة الأصدقاء
+              const friendsList = document.querySelector(".friends-list");
+              if (friendsList && data.user.referrals) {
+                let friendsHtml = "";
+                if (data.user.referrals.length === 0) {
+                  friendsHtml = `<p class="text-center text-muted">لم تقم بدعوة أي أصدقاء بعد.</p>`;
+                } else {
+                  data.user.referrals.forEach((ref) => {
+                    friendsHtml += `
+                      <div class="friend-item">
+                        <div class="friend-avatar bg-blue-light">
+                          <i class="fa-solid fa-user-astronaut"></i>
+                        </div>
+                        <div class="friend-info">
+                          <span class="friend-name">${ref.username}</span>
+                          <span class="friend-status text-success"><i class="fa-solid fa-circle-check"></i> نشط</span>
+                        </div>
+                        <div class="friend-earnings">
+                          <span class="earn-val">+ ${(ref.balance * 0.1).toFixed(0)}</span>
+                          <small>جولد / اليوم</small>
+                        </div>
+                      </div>
+                    `;
+                  });
+                }
+                friendsList.innerHTML = friendsHtml;
+              }
               checkMilestones();
             }
           });
       });
     </script>
-
   </body>
 </html>
