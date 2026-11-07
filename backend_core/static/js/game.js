@@ -99,19 +99,16 @@ function buyWorker(workerId, price) {
         updateBalanceUI(data.new_balance);
         updateUpgradeUI();
 
-        // تحديث الإنتاج في الفرونت إند
+        // تحديث الإنتاج
         if (data.production) {
           window.productionPerSecond = data.production.per_hour / 3600;
           // تحديث الإحصائيات
-          const statHourEl = document.getElementById("stat-hour");
-          const statDayEl = document.getElementById("stat-day");
-          const statMonthEl = document.getElementById("stat-month");
-          if (statHourEl)
-            statHourEl.innerText = data.production.per_hour.toFixed(2);
-          if (statDayEl)
-            statDayEl.innerText = data.production.per_day.toFixed(2);
-          if (statMonthEl)
-            statMonthEl.innerText = data.production.per_month.toFixed(2);
+          document.getElementById("stat-hour").innerText =
+            data.production.per_hour.toFixed(2);
+          document.getElementById("stat-day").innerText =
+            data.production.per_day.toFixed(2);
+          document.getElementById("stat-month").innerText =
+            data.production.per_month.toFixed(2);
         }
 
         Swal.fire({
@@ -120,24 +117,7 @@ function buyWorker(workerId, price) {
           icon: "success",
           timer: 3500,
           showConfirmButton: false,
-          customClass: {
-            popup: "swal-custom-popup",
-            title: "swal-custom-title",
-          },
-        });
-      } else {
-        Swal.fire({
-          title: "رصيدك غير كافي!",
-          text: "تحتاج المزيد من الجولد لترقية هذا العامل.",
-          icon: "error",
-          confirmButtonText: "حسناً",
-          customClass: {
-            popup: "swal-custom-popup",
-            title: "swal-custom-title",
-            confirmButton: "swal-confirm-btn",
-          },
         });
       }
-    })
-    .catch((err) => console.error(err));
+    });
 }

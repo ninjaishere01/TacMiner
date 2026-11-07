@@ -1,4 +1,3 @@
-
 // 1. تحديث الرصيد
 function updateBalanceUI(balance) {
   const balanceEl = document.getElementById("global-balance");
@@ -23,7 +22,7 @@ function renderHomeGrid() {
         body: JSON.stringify({
           telegram_id: telegramId,
           username: username,
-          referral_id: referralId
+          referral_id: referralId,
         }),
       })
         .then((res) => res.json())
@@ -152,7 +151,11 @@ function collectGold() {
     fetch("/api/collect/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ telegram_id: telegramId, amount: storage, referral_id: referralId}),
+      body: JSON.stringify({
+        telegram_id: telegramId,
+        amount: storage,
+        referral_id: referralId,
+      }),
     })
       .then((res) => res.json())
       .then((data) => {
@@ -205,14 +208,15 @@ function simulateMining() {
     let storage = parseFloat(localStorage.getItem("mineStorage")) || 0;
     let perSecond = window.productionPerSecond || 0;
 
+    // بنزود الرقم
     if (storage < 500) {
       storage += perSecond;
       localStorage.setItem("mineStorage", storage);
+      // بنعرض الرقم بـ 4 أرقام عشرية عشان يبان التغيير
       storageEl.innerText = storage.toFixed(4);
     }
   }
 }
-
 // 8. دالة رسم لوحة المتصدرين
 let topPlayers = [
   {
@@ -370,7 +374,11 @@ document.addEventListener("DOMContentLoaded", () => {
   fetch("/api/login/", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ telegram_id: telegramId, username: username , referral_id: referralId }),
+    body: JSON.stringify({
+      telegram_id: telegramId,
+      username: username,
+      referral_id: referralId,
+    }),
   })
     .then((res) => res.json())
     .then((data) => {
