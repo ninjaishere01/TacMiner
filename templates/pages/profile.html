@@ -9,6 +9,7 @@
     />
     <title>حسابي - TAC Miner</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <link
       rel="shortcut icon"
       href="{% static 'logo-brand/one-logo.png' %}"
@@ -109,12 +110,7 @@
               </p>
             </div>
           </div>
-          <button
-            class="btn btn-connect-wallet w-100 mt-3"
-            onclick="connectWalletMock()"
-          >
-            <i class="fa-solid fa-link me-1"></i> ربط المحفظة
-          </button>
+          <div id="ton-connect-button"></div>
         </div>
 
         <!-- 3. أزرار التحويل والسحب -->
@@ -250,32 +246,34 @@
           .catch((err) => console.log("Error fetching user data:", err));
       });
 
-      // دالة محاكاة لربط المحفظة
-      function connectWalletMock() {
-        const btn = document.querySelector(".btn-connect-wallet");
-        btn.innerHTML =
-          '<i class="fa-solid fa-spinner fa-spin me-1"></i> جاري الاتصال...';
-        btn.disabled = true;
+      document.addEventListener("DOMContentLoaded", () => {
+        const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+            manifestUrl: 'https://tacminer.onrender.com/tonconnect-manifest.json',
+            buttonRootId: 'ton-connect-button'
+        });
 
-        setTimeout(() => {
-          Swal.fire({
-            title: "تم الاتصال!",
-            text: "تم ربط محفظتك بنجاح (محاكاة). سيتم تفعيل السحب قريباً.",
-            icon: "success",
-            confirmButtonText: "رائع!",
-            customClass: {
-              popup: "swal-custom-popup",
-              title: "swal-custom-title",
-              confirmButton: "swal-confirm-btn",
-            },
-          });
-
-          btn.innerHTML =
-            '<i class="fa-solid fa-check me-1"></i> المحفظة متصلة';
-          btn.style.background = "#2e7d32";
-          btn.style.boxShadow = "0 4px 0 #1b5e20";
-        }, 1500);
-      }
+        tonConnectUI.onStatusChange(async (walletInfo) => {
+            if (walletInfo && walletInfo.account && walletInfo.account.address) {
+                const walletAddress = walletInfo.account.address;
+                fetch('/api/verify-wallet/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        telegram_id: telegramId,
+                        wallet_address: walletAddress
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.message === "Wallet Verified!") {
+                        Swal.fire({ title: "تم الربط!", text: "تم ربط محفظتك بنجاح.", icon: "success" });
+                        const badge = document.getElementById("verified-badge");
+                        if (badge) badge.classList.remove("d-none");
+                    }
+                });
+            }
+        });
+      });
     </script>
   </body>
 </html>
