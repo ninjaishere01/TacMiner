@@ -404,6 +404,22 @@ def verify_wallet(request):
         return Response({"error": "User not found"}, status=404)
 
 
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def disconnect_wallet(request):
+    telegram_id = request.data.get('telegram_id')
+    if not telegram_id:
+        return Response({"error": "Missing data"}, status=400)
+    try:
+        user = User.objects.get(telegram_id=telegram_id)
+        user.wallet_address = None
+        user.is_wallet_verified = False
+        user.save()
+        return Response({"message": "Wallet Disconnected!"})
+    except User.DoesNotExist:
+        return Response({"error": "User not found"}, status=404)
+
+
 
 
 @api_view(['POST'])

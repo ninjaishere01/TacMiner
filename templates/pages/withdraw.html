@@ -85,7 +85,7 @@
 
             <div id="wallet-connected-view">
               <p class="text-success small mb-0 mt-2">
-                <i class="fa-solid fa-check-circle"></i> متصلة: <span id="wallet-address-display">UQBx...3fD2</span>
+                <i class="fa-solid fa-check-circle"></i> متصلة: <span id="wallet-address-display">...</span>
               </p>
             </div>
             <div id="wallet-not-connected-view" class="d-none">
@@ -166,7 +166,7 @@
 
     <script>
       let currentUSDT = 0;
-      let userWalletAddress = "UQBxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"; // عنوان المحفظة (هيتجاب من TON Connect بعدين)
+      let userWalletAddress = null;
 
       document.addEventListener("DOMContentLoaded", () => {
         fetch("/api/login/", {
@@ -185,13 +185,14 @@
                 updateBalanceUI(data.user.balance);
               }
               currentUSDT = data.user.usdt_balance;
-              document.getElementById("usdt-balance").innerText =
-                currentUSDT.toFixed(2);
+              document.getElementById("usdt-balance").innerText = currentUSDT.toFixed(2);
 
               if (data.user.wallet_address) {
-                  document.getElementById("wallet-address-display").innerText = 
-                      data.user.wallet_address.slice(0, 8) + "..." + data.user.wallet_address.slice(-5);
                   userWalletAddress = data.user.wallet_address;
+                  // عرض العنوان: أول 6 حروف + ... + آخر 4 حروف
+                  const addr = userWalletAddress;
+                  const displayAddr = addr.length > 10 ? addr.slice(0, 6) + "..." + addr.slice(-4) : addr;
+                  document.getElementById("wallet-address-display").innerText = displayAddr;
               } else {
                   document.getElementById("wallet-connected-view").classList.add("d-none");
                   document.getElementById("wallet-not-connected-view").classList.remove("d-none");
@@ -204,7 +205,8 @@
 
       function checkWithdrawEligibility() {
         const btn = document.getElementById("withdraw-btn");
-        if (currentUSDT >= 5) {
+        // لازم يكون في محفظة + الرصيد >= 5
+        if (currentUSDT >= 5 && userWalletAddress) {
           btn.disabled = false;
           btn.style.background = "linear-gradient(to bottom, #ffca28, #f57f17)";
           btn.style.boxShadow = "0 5px 0 #b71c1c";
