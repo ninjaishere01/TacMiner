@@ -226,9 +226,9 @@
           .then((res) => res.json())
           .then((data) => {
             if (data.message === "Success") {
-              const balanceEl = document.getElementById("profile-balance");
-              if (balanceEl)
-                balanceEl.innerText = data.user.balance.toLocaleString("en-US");
+              if (typeof updateBalanceUI === "function") {
+                updateBalanceUI(data.user.balance);
+              }
 
               const nameEl = document.getElementById("profile-username");
               if (nameEl && data.user.username) nameEl.innerText = data.user.username;

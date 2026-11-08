@@ -187,8 +187,9 @@
           .then((data) => {
             if (data.message === "Success") {
               currentBalance = data.user.balance; // بنخزن الرصيد
-              document.getElementById("global-balance").innerText =
-                currentBalance.toLocaleString("en-US");
+              if (typeof updateBalanceUI === "function") {
+                updateBalanceUI(data.user.balance);
+              }
             }
           });
       });

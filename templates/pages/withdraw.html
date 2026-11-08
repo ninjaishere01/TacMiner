@@ -180,6 +180,9 @@
           .then((res) => res.json())
           .then((data) => {
             if (data.message === "Success") {
+              if (typeof updateBalanceUI === "function") {
+                updateBalanceUI(data.user.balance);
+              }
               currentUSDT = data.user.usdt_balance;
               document.getElementById("usdt-balance").innerText =
                 currentUSDT.toFixed(2);

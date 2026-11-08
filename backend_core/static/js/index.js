@@ -1,9 +1,13 @@
 // 1. تحديث الرصيد
 function updateBalanceUI(balance) {
-  const balanceEl = document.getElementById("global-balance");
-  if (balanceEl && balance !== undefined) {
-    balanceEl.innerText = balance.toLocaleString("en-US");
-  }
+  if (balance === undefined || balance === null || balance === "") return;
+  const numeric = Number(balance);
+  if (!Number.isFinite(numeric)) return;
+
+  const formatted = numeric.toLocaleString("en-US");
+  document.querySelectorAll("#global-balance, #profile-balance").forEach((el) => {
+    el.innerText = formatted;
+  });
 }
 
 // 2. رسم الصفحة الرئيسية (Home)
