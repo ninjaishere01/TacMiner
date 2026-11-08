@@ -201,6 +201,7 @@ def login_or_register(request):
             "referrals_count": referrals_count,
             "claimed_milestones": get_claimed_milestones(user),
             "production": production,
+            "completed_tasks": [task.task_name for task in user.tasks.all()],
         }
     })
 

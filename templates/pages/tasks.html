@@ -151,7 +151,7 @@
             <h6> Tac Mining Company </h6>
             <span class="task-reward">+ 50 TAC</span>
           </div>
-          <div class="d-flex flex-column gap-1">
+          <div class="d-flex flex-column gap-1" id="channel-actions-1">
             <button
               type="button"
               class="btn btn-task-action"
@@ -178,7 +178,7 @@
             <h6> Tac Mining Community </h6>
             <span class="task-reward">+ 50 TAC</span>
           </div>
-          <div class="d-flex flex-column gap-1">
+          <div class="d-flex flex-column gap-1" id="channel-actions-2">
             <button
               type="button"
               class="btn btn-task-action"
@@ -205,7 +205,7 @@
             <h6> Tac Mining Chat </h6>
             <span class="task-reward">+ 50 TAC</span>
           </div>
-          <div class="d-flex flex-column gap-1">
+          <div class="d-flex flex-column gap-1" id="channel-actions-3">
             <button
               type="button"
               class="btn btn-task-action"
@@ -231,7 +231,7 @@
             <h6> Tac Mining Withdrawal </h6>
             <span class="task-reward">+ 50 TAC</span>
           </div>
-          <div class="d-flex flex-column gap-1">
+          <div class="d-flex flex-column gap-1" id="channel-actions-4">
             <button
               type="button"
               class="btn btn-task-action"
@@ -343,6 +343,8 @@
                   if (typeof updateBalanceUI === "function") {
                     updateBalanceUI(claim.new_balance);
                   }
+
+                  markChannelTaskFinished(taskId);
 
                   Swal.fire({
                     title: "تمت المكافأة!",
@@ -585,6 +587,13 @@
         }, 1000);
       }
 
+      function markChannelTaskFinished(taskId) {
+        const actions = document.getElementById(`channel-actions-${taskId}`);
+        if (!actions) return;
+        actions.innerHTML =
+          '<span class="text-success fw-bold">تم إنهاء المهمة ✅</span>';
+      }
+
       // ==========================================
       // 6. التشغيل عند تحميل الصفحة
       // ==========================================
@@ -602,6 +611,15 @@
           .then((data) => {
             if (data.message === "Success") {
               let user = data.user;
+
+              const completedTasks = user.completed_tasks || [];
+              ["channel_1", "channel_2", "channel_3", "channel_4"].forEach(
+                (taskName) => {
+                  if (completedTasks.includes(taskName)) {
+                    markChannelTaskFinished(taskName.split("_")[1]);
+                  }
+                },
+              );
 
               // --- أ. تحديث إعلانات التفعيل اليومي ---
               let activationWatchedEl =
