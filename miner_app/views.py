@@ -122,6 +122,7 @@ def login_or_register(request):
         defaults={'username': username}
     )
 
+    offline_earnings = 0
     if user.last_collected_at:
         elapsed_seconds = (timezone.now() - user.last_collected_at).total_seconds()
         if elapsed_seconds > 60:  # لو عدت دقيقة على الأقل
@@ -129,8 +130,7 @@ def login_or_register(request):
             per_second = production["per_hour"] / 3600
             earned = Decimal(str(per_second * elapsed_seconds))
             if earned > 0:
-                user.balance += earned
-                user.save(update_fields=['balance'])
+                offline_earnings = float(earned)
 
     user.last_collected_at = timezone.now()
     user.save(update_fields=['last_collected_at'])
@@ -215,6 +215,7 @@ def login_or_register(request):
             "claimed_milestones": get_claimed_milestones(user),
             "production": production,
             "completed_tasks": [task.task_name for task in user.tasks.all()],
+            "offline_earnings": offline_earnings,
         }
     })
 

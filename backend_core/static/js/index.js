@@ -442,6 +442,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         let storage = parseFloat(localStorage.getItem("mineStorage")) || 0;
+        const offlineEarnings = Number(data.user.offline_earnings) || 0;
+        if (offlineEarnings > 0) {
+          storage += offlineEarnings;
+          localStorage.setItem("mineStorage", storage);
+        }
         const goldEl = document.getElementById("current-gold");
         if (goldEl) goldEl.innerText = storage.toFixed(4);
       }
