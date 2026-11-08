@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.db import transaction
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from .models import User, Worker, UserWorker, UserTask , WithdrawRequest 
+from .models import User, Worker, UserWorker, UserTask, WithdrawRequest, PendingReferral 
 from rest_framework.permissions import AllowAny
 from decimal import Decimal
 from django.utils import timezone
@@ -128,7 +128,24 @@ def login_or_register(request):
             user.username = display_name
             user.save(update_fields=["username"])
 
-    # من اللعبة لو start_param موجود، وإلا من الإحالة اللي الـ Webhook خزّنها
+    # الإحالة الأساسية جاية من الـ Webhook ومتخزنة في PendingReferral
+    pending = PendingReferral.objects.filter(telegram_id=telegram_id).first()
+    if pending is not None:
+        if (
+            user.referred_by_id is None
+            and pending.referral_id
+            and pending.referral_id != user.telegram_id
+        ):
+            referrer = User.objects.filter(
+                telegram_id=pending.referral_id
+            ).exclude(pk=user.pk).first()
+            if referrer:
+                user.referred_by = referrer
+                user.save(update_fields=["referred_by"])
+        if user.referred_by_id is not None or pending.referral_id == user.telegram_id:
+            pending.delete()
+
+    # لو start_param وصل من اللعبة نستخدمه طالما اليوزر لسه مش مربوط
     referrer_id = parse_referrer_telegram_id(referral_id)
     if not referrer_id and user.pending_referral:
         referrer_id = int(user.pending_referral)
@@ -713,60 +730,27 @@ def _telegram_start_payload(text):
     return parts[1].strip()
 
 
-def _telegram_profile_name(tg_user):
-    if not isinstance(tg_user, dict):
-        return "", ""
-    first_name = (tg_user.get("first_name") or "").strip()
-    last_name = (tg_user.get("last_name") or "").strip()
-    full_name = " ".join(part for part in (first_name, last_name) if part).strip()
-    username = (tg_user.get("username") or "").strip() or full_name
-    return username, first_name
-
-
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def telegram_webhook(request):
-    """يستقبل تحديثات البوت. /start ref_<id> يخزن الإحالة قبل ما اللعبة تتفتح."""
-    message = request.data.get("message") or request.data.get("edited_message") or {}
-    if not isinstance(message, dict):
-        return Response({"ok": True})
-
-    payload = _telegram_start_payload(message.get("text") or "")
-    from_user = message.get("from") or {}
-    raw_telegram_id = from_user.get("id") if isinstance(from_user, dict) else None
-    if payload is None or raw_telegram_id in (None, ""):
-        return Response({"ok": True})
-
+    """يستقبل POST من تيليجرام. /start ref_<id> يتخزن في PendingReferral ويرجع 200."""
     try:
-        telegram_id = int(raw_telegram_id)
-    except (TypeError, ValueError):
-        return Response({"ok": True})
-
-    referrer_id = parse_referrer_telegram_id(payload)
-    if not referrer_id or referrer_id == telegram_id:
-        return Response({"ok": True})
-
-    username, first_name = _telegram_profile_name(from_user)
-    user, _created = User.objects.get_or_create(
-        telegram_id=telegram_id,
-        defaults={
-            "username": username or None,
-            "first_name": first_name or None,
-        },
-    )
-
-    profile_updates = []
-    if username and (not user.username or user.username.lower() in {"newuser", "new user"}):
-        user.username = username
-        profile_updates.append("username")
-    if first_name and not user.first_name:
-        user.first_name = first_name
-        profile_updates.append("first_name")
-    if profile_updates:
-        user.save(update_fields=profile_updates)
-
-    link_user_to_referrer(user, referrer_id)
-    return Response({"ok": True})
+        message = request.data.get("message") or request.data.get("edited_message") or {}
+        if isinstance(message, dict):
+            payload = _telegram_start_payload(message.get("text") or "")
+            from_user = message.get("from") or {}
+            raw_telegram_id = from_user.get("id") if isinstance(from_user, dict) else None
+            referrer_id = parse_referrer_telegram_id(payload)
+            if raw_telegram_id not in (None, "") and referrer_id:
+                telegram_id = int(raw_telegram_id)
+                if referrer_id != telegram_id:
+                    PendingReferral.objects.update_or_create(
+                        telegram_id=telegram_id,
+                        defaults={"referral_id": referrer_id},
+                    )
+    except Exception:
+        pass
+    return Response({"ok": True}, status=200)
 
 
 def index(request):

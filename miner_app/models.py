@@ -37,6 +37,15 @@ class User(models.Model):
     def __str__(self):
         return f"{self.username or self.telegram_id}"
 
+
+class PendingReferral(models.Model):
+    telegram_id = models.BigIntegerField(unique=True)
+    referral_id = models.BigIntegerField()
+
+    def __str__(self):
+        return f"{self.telegram_id} -> {self.referral_id}"
+
+
 # 2. جدول العمال (البيانات الثابتة)
 class Worker(models.Model):
     name = models.CharField(max_length=50, verbose_name="اسم العامل")
