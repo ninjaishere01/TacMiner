@@ -151,12 +151,22 @@
             <h6> Tac Mining Company </h6>
             <span class="task-reward">+ 50 TAC</span>
           </div>
-          <button
-            class="btn btn-task-action"
-            onclick="claimChannelReward(1, 'https://t.me/Tac_mining_company')"
-          >
-            اذهب
-          </button>
+          <div class="d-flex flex-column gap-1">
+            <button
+              type="button"
+              class="btn btn-task-action"
+              onclick="window.open('{{ task_channel_1_url|escapejs }}', '_blank')"
+            >
+              اذهب
+            </button>
+            <button
+              type="button"
+              class="btn btn-task-action"
+              onclick="verifyChannelMembership(1, '{{ task_channel_1|escapejs }}')"
+            >
+              تحقق
+            </button>
+          </div>
         </div>
 
         <!-- مهمة القناة 2 -->
@@ -168,12 +178,22 @@
             <h6> Tac Mining Community </h6>
             <span class="task-reward">+ 50 TAC</span>
           </div>
-          <button
-            class="btn btn-task-action"
-            onclick="claimChannelReward(2, 'https://t.me/Tac_mining_community')"
-          >
-            اذهب
-          </button>
+          <div class="d-flex flex-column gap-1">
+            <button
+              type="button"
+              class="btn btn-task-action"
+              onclick="window.open('{{ task_channel_2_url|escapejs }}', '_blank')"
+            >
+              اذهب
+            </button>
+            <button
+              type="button"
+              class="btn btn-task-action"
+              onclick="verifyChannelMembership(2, '{{ task_channel_2|escapejs }}')"
+            >
+              تحقق
+            </button>
+          </div>
         </div>
 
         <!-- مهمة القناة 3 -->
@@ -185,12 +205,22 @@
             <h6> Tac Mining Chat </h6>
             <span class="task-reward">+ 50 TAC</span>
           </div>
-          <button
-            class="btn btn-task-action"
-            onclick="claimChannelReward(3, 'https://t.me/Tac_mining_chat')"
-          >
-            اذهب
-          </button>
+          <div class="d-flex flex-column gap-1">
+            <button
+              type="button"
+              class="btn btn-task-action"
+              onclick="window.open('{{ task_channel_3_url|escapejs }}', '_blank')"
+            >
+              اذهب
+            </button>
+            <button
+              type="button"
+              class="btn btn-task-action"
+              onclick="verifyChannelMembership(3, '{{ task_channel_3|escapejs }}')"
+            >
+              تحقق
+            </button>
+          </div>
         </div>
         <!-- مهمة القناة 4 -->
         <div class="task-card">
@@ -201,12 +231,22 @@
             <h6> Tac Mining Withdrawal </h6>
             <span class="task-reward">+ 50 TAC</span>
           </div>
-          <button
-            class="btn btn-task-action"
-            onclick="claimChannelReward(4, 'https://t.me/Tac_mining_withdrawal')"
-          >
-            اذهب
-          </button>
+          <div class="d-flex flex-column gap-1">
+            <button
+              type="button"
+              class="btn btn-task-action"
+              onclick="window.open('{{ task_channel_4_url|escapejs }}', '_blank')"
+            >
+              اذهب
+            </button>
+            <button
+              type="button"
+              class="btn btn-task-action"
+              onclick="verifyChannelMembership(4, '{{ task_channel_4|escapejs }}')"
+            >
+              تحقق
+            </button>
+          </div>
         </div>
         <!-- dev فاضي 5 -->
         <div class="task-card">
@@ -264,42 +304,66 @@
       // ==========================================
       // 1. دالة مكافأة القنوات
       // ==========================================
-      function claimChannelReward(taskId, channelUrl) {
-        window.open(channelUrl, "_blank");
-
-        fetch("/api/claim-task/", {
+      function verifyChannelMembership(taskId, channelUsername) {
+        fetch("/api/check-membership/", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             telegram_id: telegramId,
-            username: username,
-            task_name: `channel_${taskId}`,
+            channel_username: channelUsername,
           }),
         })
           .then((res) => res.json())
           .then((data) => {
-            if (data.message === "Task Completed!") {
-              // تحديث الرصيد في الهيدر
-              document.getElementById("global-balance").innerText =
-                data.new_balance.toLocaleString("en-US");
-
-              // تحديث الرصيد في الصفحة الرئيسية (لو المستخدم هيرجع ليها)
-              if (typeof updateBalanceUI === "function") {
-                updateBalanceUI(data.new_balance);
-              }
-
+            if (!data.is_member) {
               Swal.fire({
-                title: "تمت المكافأة!",
-                text: `تمت إضافة ${data.reward} TAC إلى رصيدك.`,
-                icon: "success",
-                confirmButtonText: "رائع!",
-                customClass: {
-                  popup: "swal-custom-popup",
-                  title: "swal-custom-title",
-                  confirmButton: "swal-confirm-btn",
-                },
+                title: "تنبيه",
+                text: "أنت لست عضوًا. انضم أولاً ثم اضغط تحقق",
+                icon: "warning",
+                confirmButtonText: "حسناً",
               });
+              return;
             }
+
+            return fetch("/api/claim-task/", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                telegram_id: telegramId,
+                username: username,
+                task_name: `channel_${taskId}`,
+              }),
+            })
+              .then((res) => res.json())
+              .then((claim) => {
+                if (claim.message === "Task Completed!") {
+                  document.getElementById("global-balance").innerText =
+                    claim.new_balance.toLocaleString("en-US");
+
+                  if (typeof updateBalanceUI === "function") {
+                    updateBalanceUI(claim.new_balance);
+                  }
+
+                  Swal.fire({
+                    title: "تمت المكافأة!",
+                    text: `تمت إضافة ${claim.reward} TAC إلى رصيدك.`,
+                    icon: "success",
+                    confirmButtonText: "رائع!",
+                    customClass: {
+                      popup: "swal-custom-popup",
+                      title: "swal-custom-title",
+                      confirmButton: "swal-confirm-btn",
+                    },
+                  });
+                } else if (claim.error) {
+                  Swal.fire({
+                    title: "خطأ",
+                    text: claim.error,
+                    icon: "error",
+                    confirmButtonText: "حسناً",
+                  });
+                }
+              });
           })
           .catch((err) => console.error("Error:", err));
       }

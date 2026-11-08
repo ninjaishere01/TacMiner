@@ -28,6 +28,7 @@ urlpatterns = [
 
     # AdsGram
     path('api/claim-task/', views.claim_task_reward, name='api_claim_task'),
+    path('api/check-membership/', views.check_channel_membership, name='check_membership'),
     path('api/watch-ad/', views.watch_ad, name='api_watch_ad'),
 
     path('api/collect-referral/', views.collect_referral_gold, name='api_collect_referral'),

@@ -317,6 +317,15 @@ def claim_task_reward(request):
     if not telegram_id or not task_name:
         return Response({"error": "Missing data"}, status=400)
 
+    channel_tasks = {
+        "channel_1": settings.TELEGRAM_TASK_CHANNEL_1,
+        "channel_2": settings.TELEGRAM_TASK_CHANNEL_2,
+        "channel_3": settings.TELEGRAM_TASK_CHANNEL_3,
+        "channel_4": settings.TELEGRAM_TASK_CHANNEL_4,
+    }
+    if task_name in channel_tasks and not telegram_user_in_channel(telegram_id, channel_tasks[task_name]):
+        return Response({"error": "أنت لست عضوًا. انضم أولاً ثم اضغط تحقق"}, status=400)
+
     try:
         with transaction.atomic():
             user = User.objects.select_for_update().get(telegram_id=telegram_id)
@@ -761,8 +770,67 @@ def upgrade(request):
     return render(request, 'pages/upgrade.html')
 
 
+def _channel_chat_id(channel_username):
+    value = str(channel_username or "").strip()
+    if "t.me/" in value:
+        value = value.split("t.me/", 1)[1].split("?", 1)[0].strip("/")
+        value = value.split("/", 1)[0]
+    if not value:
+        return ""
+    if value.startswith("@") or value.lstrip("-").isdigit():
+        return value
+    return f"@{value}"
+
+
+def _channel_public_url(channel_username):
+    value = str(channel_username or "").strip()
+    if value.startswith("http://") or value.startswith("https://"):
+        return value
+    chat_id = _channel_chat_id(value)
+    name = chat_id[1:] if chat_id.startswith("@") else chat_id
+    return f"https://t.me/{name}" if name else "https://t.me/"
+
+
+def telegram_user_in_channel(telegram_id, channel_username):
+    chat_id = _channel_chat_id(channel_username)
+    token = settings.TELEGRAM_BOT_TOKEN
+    if not chat_id or not token or telegram_id in (None, ""):
+        return False
+    try:
+        response = requests.get(
+            f"https://api.telegram.org/bot{token}/getChatMember",
+            params={"chat_id": chat_id, "user_id": telegram_id},
+            timeout=10,
+        )
+        payload = response.json()
+        result = payload.get("result") if isinstance(payload, dict) else None
+        status = result.get("status") if isinstance(result, dict) else None
+        return status in ("member", "administrator", "creator")
+    except Exception:
+        return False
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def check_channel_membership(request):
+    telegram_id = request.data.get("telegram_id")
+    channel_username = request.data.get("channel_username")
+    is_member = telegram_user_in_channel(telegram_id, channel_username)
+    return Response({"is_member": is_member})
+
+
 def tasks(request):
-    return render(request, 'pages/tasks.html')
+    channels = (
+        settings.TELEGRAM_TASK_CHANNEL_1,
+        settings.TELEGRAM_TASK_CHANNEL_2,
+        settings.TELEGRAM_TASK_CHANNEL_3,
+        settings.TELEGRAM_TASK_CHANNEL_4,
+    )
+    context = {}
+    for index, channel in enumerate(channels, start=1):
+        context[f"task_channel_{index}"] = channel or ""
+        context[f"task_channel_{index}_url"] = _channel_public_url(channel)
+    return render(request, 'pages/tasks.html', context)
 
 
 def referral(request):
