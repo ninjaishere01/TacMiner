@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.db import transaction
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from .models import User, Worker, UserWorker, UserTask , WithdrawRequest 
@@ -11,6 +12,40 @@ import random
 from django.conf import settings
 import threading
 import time
+
+
+# مكافآت دعوة الأصدقاء: اسم المهمة في UserTask -> (عدد الأصدقاء، المكافأة)
+MILESTONE_REWARDS = {
+    "milestone_3": (3, Decimal("30")),
+    "milestone_5": (5, Decimal("50")),
+    "milestone_10": (10, Decimal("100")),
+}
+
+
+def parse_referrer_telegram_id(referral_id):
+    """بيرجع Telegram ID لصاحب الدعوة لو القيمة بالشكل ref_<id> أو رقم فقط."""
+    if referral_id in (None, ""):
+        return None
+    referrer_text = str(referral_id).strip()
+    if referrer_text.lower().startswith("ref_"):
+        referrer_text = referrer_text[4:].strip()
+    if not referrer_text.isdigit():
+        return None
+    return int(referrer_text)
+
+
+def get_claimed_milestones(user):
+    """أرقام مكافآت الدعوة اللي المستخدم استلمها فعلاً من جدول UserTask."""
+    names = UserTask.objects.filter(
+        user=user,
+        task_name__in=MILESTONE_REWARDS.keys(),
+    ).values_list("task_name", flat=True)
+    claimed = []
+    for name in names:
+        suffix = str(name).split("_", 1)[-1]
+        if suffix.isdigit():
+            claimed.append(int(suffix))
+    return sorted(set(claimed))
 
 
 
@@ -64,7 +99,7 @@ def login_or_register(request):
         return Response({"error": "Telegram ID is required"}, status=400)
 
     # بنشوف المستخدم موجود ولا جديد
-    user, _created = User.objects.get_or_create(
+    user, created = User.objects.get_or_create(
         telegram_id=telegram_id,
         defaults={'username': username}
     )
@@ -75,20 +110,14 @@ def login_or_register(request):
             user.username = display_name
             user.save(update_fields=["username"])
 
-    # لو الحساب لسه من غير صاحب دعوة، ووصل referral_id، بنربطه
-    referrer_id = None
-    if referral_id not in (None, ""):
-        referrer_text = str(referral_id).strip()
-        if referrer_text.lower().startswith("ref_"):
-            referrer_text = referrer_text[4:]
-        if referrer_text.isdigit():
-            referrer_id = int(referrer_text)
-
-    if referrer_id and referrer_id != user.telegram_id and user.referred_by_id is None:
-        referrer = User.objects.filter(telegram_id=referrer_id).first()
-        if referrer and referrer.pk != user.pk:
-            user.referred_by = referrer
-            user.save(update_fields=["referred_by"])
+    # ربط الإحالة: حساب جديد، أو حساب موجود لسه من غير صاحب دعوة
+    referrer_id = parse_referrer_telegram_id(referral_id)
+    if referrer_id and referrer_id != user.telegram_id:
+        if created or user.referred_by_id is None:
+            referrer = User.objects.filter(telegram_id=referrer_id).first()
+            if referrer and referrer.pk != user.pk and user.referred_by_id is None:
+                user.referred_by = referrer
+                user.save(update_fields=["referred_by"])
 
     # بنجيب العمال اللي معاه
     user_workers = {}
@@ -109,12 +138,15 @@ def login_or_register(request):
 
     # بنحسب الإنتاج الحالي للعمال
     production = calculate_user_production(user)
+    # العدد والقائمة بعد حفظ الربط، عشان صاحب الدعوة يشوف الرقم محدّث
+    referred_users = list(user.referrals.all())
     referrals_list = []
-    for ref in user.referrals.all(): # referrals هو related_name
+    for ref in referred_users:
         referrals_list.append({
             "username": ref.username or str(ref.telegram_id),
             "balance": float(ref.balance)
         })
+    referrals_count = len(referrals_list)
 
     return Response({
         "message": "Success",
@@ -132,7 +164,8 @@ def login_or_register(request):
             "last_boost_time": user.last_boost_time.isoformat() if user.last_boost_time else None,
             "time_left": time_left,
             "referrals": referrals_list,
-            "referrals_count": len(referrals_list),
+            "referrals_count": referrals_count,
+            "claimed_milestones": get_claimed_milestones(user),
             "production": production,
         }
     })
@@ -252,25 +285,43 @@ def claim_task_reward(request):
         return Response({"error": "Missing data"}, status=400)
 
     try:
-        user = User.objects.get(telegram_id=telegram_id)
-        
-        # 1. بنتأكد إنه مخلصش المهمة دي قبل كده
-        if UserTask.objects.filter(user=user, task_name=task_name).exists():
-            return Response({"error": "لقد قمت بإكمال هذه المهمة بالفعل!"}, status=400)
+        with transaction.atomic():
+            user = User.objects.select_for_update().get(telegram_id=telegram_id)
 
-        # 2. لو مهمة جديدة، بنديله المكافأة ونسجلها
-        reward_amount = Decimal('50.00')
-        user.balance += reward_amount # <-- مكافآت المهام بتضاف لرصيد الفعلي الان
-        user.save()
+            if UserTask.objects.filter(user=user, task_name=task_name).exists():
+                return Response({"error": "لقد قمت بإكمال هذه المهمة بالفعل!"}, status=400)
 
-        # نسجل المهمة عشان ميقدرش ياخدها تاني
-        UserTask.objects.create(user=user, task_name=task_name)
+            # مكافآت الدعوة بتتسجل في UserTask وبتضاف لرصيد الإحالة
+            if task_name in MILESTONE_REWARDS:
+                required_friends, reward_amount = MILESTONE_REWARDS[task_name]
+                friends_count = user.referrals.count()
+                if friends_count < required_friends:
+                    return Response({"error": "عدد الأصدقاء المدعوين غير كافٍ"}, status=400)
 
-        return Response({
-            "message": "Task Completed!", 
-            "new_balance": float(user.balance),
-            "reward": float(reward_amount)
-        })
+                user.referral_balance += reward_amount
+                user.save(update_fields=["referral_balance"])
+                UserTask.objects.create(user=user, task_name=task_name)
+
+                return Response({
+                    "message": "Task Completed!",
+                    "reward": float(reward_amount),
+                    "referral_balance": float(user.referral_balance),
+                    "new_balance": float(user.balance),
+                    "claimed_milestones": get_claimed_milestones(user),
+                    "referrals_count": friends_count,
+                })
+
+            # مكافآت المهام العادية بتضاف للرصيد الأساسي
+            reward_amount = Decimal('50.00')
+            user.balance += reward_amount
+            user.save(update_fields=["balance"])
+            UserTask.objects.create(user=user, task_name=task_name)
+
+            return Response({
+                "message": "Task Completed!",
+                "new_balance": float(user.balance),
+                "reward": float(reward_amount)
+            })
     except User.DoesNotExist:
         return Response({"error": "User not found"}, status=404)
 

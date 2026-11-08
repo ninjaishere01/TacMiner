@@ -389,6 +389,11 @@ setInterval(updateLeaderboardScores, 30000);
 
 // 9. التشغيل عند تحميل الصفحة
 document.addEventListener("DOMContentLoaded", () => {
+  if (typeof captureReferralId === "function") {
+    const latestReferralId = captureReferralId();
+    if (latestReferralId) referralId = latestReferralId;
+  }
+
   // 1. تسجيل الدخول وجلب بيانات اليوزر
   fetch("/api/login/", {
     method: "POST",

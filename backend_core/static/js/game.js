@@ -58,15 +58,40 @@ function readTelegramStartParam() {
   return "";
 }
 
-// referral_id جاي من start_param (ref_<telegram_id>)
-let referralId = null;
-const startParam = readTelegramStartParam();
-if (startParam) {
-  const normalized = String(startParam).startsWith("ref_")
-    ? String(startParam).slice(4)
-    : String(startParam);
-  if (/^\d+$/.test(normalized)) referralId = normalized;
+// referral_id من start_param فقط لو القيمة تبدأ بـ ref_
+function referralIdFromStartParam(startParam) {
+  if (startParam == null || startParam === "") return null;
+  const value = String(startParam).trim();
+  if (!value.toLowerCase().startsWith("ref_")) return null;
+  const referrerId = value.slice(4).trim();
+  return /^\d+$/.test(referrerId) ? referrerId : null;
 }
+
+function captureReferralId() {
+  const webApp = window.Telegram && window.Telegram.WebApp;
+  const unsafeParam =
+    webApp && webApp.initDataUnsafe
+      ? webApp.initDataUnsafe.start_param
+      : null;
+  const fromUnsafe = referralIdFromStartParam(unsafeParam);
+  if (fromUnsafe) return fromUnsafe;
+
+  if (webApp && webApp.initData) {
+    const fromInitData = referralIdFromStartParam(
+      new URLSearchParams(webApp.initData).get("start_param"),
+    );
+    if (fromInitData) return fromInitData;
+  }
+
+  return referralIdFromStartParam(readTelegramStartParam());
+}
+
+let referralId = captureReferralId();
+
+document.addEventListener("DOMContentLoaded", () => {
+  const latestReferralId = captureReferralId();
+  if (latestReferralId) referralId = latestReferralId;
+});
 
 const allWorkers = [
   {

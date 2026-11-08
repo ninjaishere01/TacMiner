@@ -345,8 +345,9 @@
           });
       }
 
-      // 3. نظام مكافآت الدعوة
-      let currentFriendsCount = 0; // هيتم تحديثها من الباك إند
+      // 3. نظام مكافآت الدعوة (الحالة جاية من الـ API / UserTask)
+      let currentFriendsCount = 0;
+      let claimedMilestones = [];
 
       function checkMilestones() {
         const milestones = [
@@ -354,9 +355,6 @@
           { count: 5, reward: 50, id: "milestone-5" },
           { count: 10, reward: 100, id: "milestone-10" },
         ];
-
-        let claimedMilestones =
-          JSON.parse(localStorage.getItem("claimedMilestones")) || [];
 
         milestones.forEach((ms) => {
           const card = document.getElementById(ms.id);
@@ -368,63 +366,79 @@
             btn.innerText = "تم الاستلام";
             btn.classList.add("claimed-btn");
             btn.classList.remove("disabled-btn");
+            btn.disabled = true;
           } else if (currentFriendsCount >= ms.count) {
             card.classList.add("claimable");
             card.classList.remove("claimed");
             btn.classList.remove("disabled-btn", "claimed-btn");
             btn.innerText = "استلام";
+            btn.disabled = false;
           } else {
             card.classList.remove("claimable", "claimed");
             btn.classList.add("disabled-btn");
+            btn.classList.remove("claimed-btn");
             btn.innerText = "استلام";
+            btn.disabled = true;
           }
         });
       }
 
       function claimMilestone(friendCount, rewardAmount) {
-        let claimedMilestones =
-          JSON.parse(localStorage.getItem("claimedMilestones")) || [];
+        if (claimedMilestones.includes(friendCount)) return;
+        if (currentFriendsCount < friendCount) return;
 
-        if (!claimedMilestones.includes(friendCount)) {
-          fetch("/api/claim-task/", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              telegram_id: telegramId,
-              username: username,
-              task_name: `milestone_${friendCount}`,
-            }),
-          })
-            .then((res) => res.json())
-            .then((data) => {
-              if (data.message === "Task Completed!") {
-                claimedMilestones.push(friendCount);
-                localStorage.setItem(
-                  "claimedMilestones",
-                  JSON.stringify(claimedMilestones),
-                );
-                checkMilestones();
+        fetch("/api/claim-task/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            telegram_id: telegramId,
+            username: username,
+            task_name: `milestone_${friendCount}`,
+          }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.message === "Task Completed!") {
+              claimedMilestones = Array.isArray(data.claimed_milestones)
+                ? data.claimed_milestones.map(Number)
+                : claimedMilestones.concat(friendCount);
 
-                Swal.fire({
-                  title: "مبروك!",
-                  text: `لقد حصلت على ${rewardAmount} TAC لدعوتك ${friendCount} أصدقاء.`,
-                  icon: "success",
-                  confirmButtonText: "رائع!",
-                  customClass: {
-                    popup: "swal-custom-popup",
-                    title: "swal-custom-title",
-                    confirmButton: "swal-confirm-btn",
-                  },
-                  timer: 3000,
-                  showConfirmButton: false,
-                });
+              if (typeof data.referral_balance === "number") {
+                currentReferralBalance = data.referral_balance;
+                document.getElementById("referral-balance-display").innerText =
+                  currentReferralBalance.toFixed(2);
               }
-            });
-        }
+
+              checkMilestones();
+
+              const received =
+                data.reward != null ? data.reward : rewardAmount;
+              Swal.fire({
+                title: "مبروك!",
+                text: `لقد حصلت على ${received} TAC لدعوتك ${friendCount} أصدقاء.`,
+                icon: "success",
+                confirmButtonText: "رائع!",
+                customClass: {
+                  popup: "swal-custom-popup",
+                  title: "swal-custom-title",
+                  confirmButton: "swal-confirm-btn",
+                },
+                timer: 3000,
+                showConfirmButton: false,
+              });
+            } else if (data.error) {
+              Swal.fire("تنبيه", data.error, "warning");
+            }
+          });
       }
 
       // 4. التشغيل عند تحميل الصفحة
       document.addEventListener("DOMContentLoaded", () => {
+        if (typeof captureReferralId === "function") {
+          const latestReferralId = captureReferralId();
+          if (latestReferralId) referralId = latestReferralId;
+        }
+
         // تحديث رابط الإحالة
         const refLinkInput = document.getElementById("ref-link");
         if (refLinkInput && telegramId) {
@@ -451,21 +465,27 @@
               document.getElementById("referral-balance-display").innerText =
                 currentReferralBalance.toFixed(2);
 
-              // تحديث عدد الأصدقاء
-              if (data.user.referrals) {
-                currentFriendsCount = data.user.referrals.length;
-                document.getElementById("friends-count").innerText =
-                  currentFriendsCount;
-              }
+              // تحديث عدد الأصدقاء من الرقم اللي رجعه الـ API بعد الربط
+              const friends = data.user.referrals || [];
+              currentFriendsCount =
+                typeof data.user.referrals_count === "number"
+                  ? data.user.referrals_count
+                  : friends.length;
+              document.getElementById("friends-count").innerText =
+                currentFriendsCount;
+
+              claimedMilestones = Array.isArray(data.user.claimed_milestones)
+                ? data.user.claimed_milestones.map(Number)
+                : [];
 
               // رسم قائمة الأصدقاء
               const friendsList = document.querySelector(".friends-list");
-              if (friendsList && data.user.referrals) {
+              if (friendsList) {
                 let friendsHtml = "";
-                if (data.user.referrals.length === 0) {
+                if (friends.length === 0) {
                   friendsHtml = `<p class="text-center text-muted">لم تقم بدعوة أي أصدقاء بعد.</p>`;
                 } else {
-                  data.user.referrals.forEach((ref) => {
+                  friends.forEach((ref) => {
                     friendsHtml += `
                       <div class="friend-item">
                         <div class="friend-avatar bg-blue-light">
