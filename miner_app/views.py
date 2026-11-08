@@ -90,6 +90,9 @@ def login_or_register(request):
     username = request.data.get('username', '')
     referral_id = request.data.get('referral_id')
 
+    # DEBUG: عشان نشوف القيم اللي واصلة
+    print(f"DEBUG LOGIN: telegram_id={telegram_id}, referral_id={referral_id}")
+
     if not telegram_id:
         return Response({"error": "Telegram ID is required"}, status=400)
 
@@ -104,6 +107,9 @@ def login_or_register(request):
         defaults={'username': username}
     )
 
+    # DEBUG: هل المستخدم جديد؟
+    print(f"DEBUG USER: created={created}, user_id={user.telegram_id}")
+
     display_name = (username or "").strip()
     if display_name and display_name.lower() not in {"newuser", "new user"}:
         if user.username != display_name:
@@ -112,12 +118,21 @@ def login_or_register(request):
 
     # ربط الإحالة: حساب جديد، أو حساب موجود لسه من غير صاحب دعوة
     referrer_id = parse_referrer_telegram_id(referral_id)
+    print(f"DEBUG REFERRAL: parsed referrer_id={referrer_id}")
+    
     if referrer_id and referrer_id != user.telegram_id:
         if created or user.referred_by_id is None:
             referrer = User.objects.filter(telegram_id=referrer_id).first()
+            print(f"DEBUG REFERRAL: referrer found={referrer}")
+            
             if referrer and referrer.pk != user.pk and user.referred_by_id is None:
                 user.referred_by = referrer
                 user.save(update_fields=["referred_by"])
+                print(f"DEBUG REFERRAL: LINKED! {user.telegram_id} -> {referrer.telegram_id}")
+            else:
+                print(f"DEBUG REFERRAL: NOT LINKED. Reason: referrer exists={bool(referrer)}, same_user={referrer.pk == user.pk if referrer else False}, already_linked={user.referred_by_id is not None}")
+    else:
+        print(f"DEBUG REFERRAL: Skipped. referrer_id={referrer_id}, same_as_user={referrer_id == user.telegram_id}")
 
     # بنجيب العمال اللي معاه
     user_workers = {}
@@ -169,7 +184,6 @@ def login_or_register(request):
             "production": production,
         }
     })
-
 
 
 
