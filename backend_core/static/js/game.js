@@ -37,51 +37,16 @@ if (document.readyState === "loading") {
   applyTelegramName();
 }
 
-function readTelegramStartParam() {
-  const unsafeParam =
-    telegramWebApp &&
-    telegramWebApp.initDataUnsafe &&
-    telegramWebApp.initDataUnsafe.start_param;
-  if (unsafeParam) return String(unsafeParam);
-
-  const sources = [];
-  if (window.location.hash) sources.push(window.location.hash.slice(1));
-  if (window.location.search) sources.push(window.location.search.slice(1));
-  for (const source of sources) {
-    const params = new URLSearchParams(source);
-    const value =
-      params.get("tgWebAppStartParam") ||
-      params.get("startapp") ||
-      params.get("start_param");
-    if (value) return value;
-  }
-  return "";
-}
-
-// referral_id من start_param فقط لو القيمة تبدأ بـ ref_
-function referralIdFromStartParam(startParam) {
+// referral_id من WebApp.initDataUnsafe.start_param فقط، ولو القيمة تبدأ بـ ref_
+function captureReferralId() {
+  const webApp = window.Telegram && window.Telegram.WebApp;
+  const startParam =
+    webApp && webApp.initDataUnsafe ? webApp.initDataUnsafe.start_param : null;
   if (startParam == null || startParam === "") return null;
   const value = String(startParam).trim();
   if (!value.toLowerCase().startsWith("ref_")) return null;
   const referrerId = value.slice(4).trim();
   return /^\d+$/.test(referrerId) ? referrerId : null;
-}
-
-function captureReferralId() {
-  const webApp = window.Telegram && window.Telegram.WebApp;
-  const unsafeParam =
-    webApp && webApp.initDataUnsafe ? webApp.initDataUnsafe.start_param : null;
-  const fromUnsafe = referralIdFromStartParam(unsafeParam);
-  if (fromUnsafe) return fromUnsafe;
-
-  if (webApp && webApp.initData) {
-    const fromInitData = referralIdFromStartParam(
-      new URLSearchParams(webApp.initData).get("start_param"),
-    );
-    if (fromInitData) return fromInitData;
-  }
-
-  return referralIdFromStartParam(readTelegramStartParam());
 }
 
 let referralId = captureReferralId();

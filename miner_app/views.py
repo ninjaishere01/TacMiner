@@ -34,6 +34,24 @@ def parse_referrer_telegram_id(referral_id):
     return int(referrer_text)
 
 
+def link_user_to_referrer(user, referrer_id):
+    """يربط المستخدم بصاحب الدعوة. لو صاحب الدعوة لسه مش في الداتابيز، الرقم يتسجل في pending_referral."""
+    if not referrer_id or referrer_id == user.telegram_id or user.referred_by_id:
+        return False
+
+    referrer = User.objects.filter(telegram_id=referrer_id).exclude(pk=user.pk).first()
+    if referrer:
+        user.referred_by = referrer
+        user.pending_referral = None
+        user.save(update_fields=["referred_by", "pending_referral"])
+        return True
+
+    if user.pending_referral != referrer_id:
+        user.pending_referral = referrer_id
+        user.save(update_fields=["pending_referral"])
+    return False
+
+
 def get_claimed_milestones(user):
     """أرقام مكافآت الدعوة اللي المستخدم استلمها فعلاً من جدول UserTask."""
     names = UserTask.objects.filter(
@@ -90,9 +108,6 @@ def login_or_register(request):
     username = request.data.get('username', '')
     referral_id = request.data.get('referral_id')
 
-    # DEBUG: عشان نشوف القيم اللي واصلة
-    print(f"DEBUG LOGIN: telegram_id={telegram_id}, referral_id={referral_id}")
-
     if not telegram_id:
         return Response({"error": "Telegram ID is required"}, status=400)
 
@@ -107,32 +122,19 @@ def login_or_register(request):
         defaults={'username': username}
     )
 
-    # DEBUG: هل المستخدم جديد؟
-    print(f"DEBUG USER: created={created}, user_id={user.telegram_id}")
-
     display_name = (username or "").strip()
     if display_name and display_name.lower() not in {"newuser", "new user"}:
         if user.username != display_name:
             user.username = display_name
             user.save(update_fields=["username"])
 
-    # ربط الإحالة: حساب جديد، أو حساب موجود لسه من غير صاحب دعوة
+    # من اللعبة لو start_param موجود، وإلا من الإحالة اللي الـ Webhook خزّنها
     referrer_id = parse_referrer_telegram_id(referral_id)
-    print(f"DEBUG REFERRAL: parsed referrer_id={referrer_id}")
-    
-    if referrer_id and referrer_id != user.telegram_id:
-        if created or user.referred_by_id is None:
-            referrer = User.objects.filter(telegram_id=referrer_id).first()
-            print(f"DEBUG REFERRAL: referrer found={referrer}")
-            
-            if referrer and referrer.pk != user.pk and user.referred_by_id is None:
-                user.referred_by = referrer
-                user.save(update_fields=["referred_by"])
-                print(f"DEBUG REFERRAL: LINKED! {user.telegram_id} -> {referrer.telegram_id}")
-            else:
-                print(f"DEBUG REFERRAL: NOT LINKED. Reason: referrer exists={bool(referrer)}, same_user={referrer.pk == user.pk if referrer else False}, already_linked={user.referred_by_id is not None}")
-    else:
-        print(f"DEBUG REFERRAL: Skipped. referrer_id={referrer_id}, same_as_user={referrer_id == user.telegram_id}")
+    if not referrer_id and user.pending_referral:
+        referrer_id = int(user.pending_referral)
+
+    if referrer_id and (created or user.referred_by_id is None):
+        link_user_to_referrer(user, referrer_id)
 
     # بنجيب العمال اللي معاه
     user_workers = {}
@@ -698,6 +700,73 @@ def send_public_announcement(username, amount, wallet_address):
 
 
 
+
+
+def _telegram_start_payload(text):
+    """يطلع الـ payload من رسالة زي /start ref_123 أو /start@Bot ref_123."""
+    parts = (text or "").strip().split()
+    if not parts:
+        return None
+    command = parts[0].split("@", 1)[0].lower()
+    if command != "/start" or len(parts) < 2:
+        return None
+    return parts[1].strip()
+
+
+def _telegram_profile_name(tg_user):
+    if not isinstance(tg_user, dict):
+        return "", ""
+    first_name = (tg_user.get("first_name") or "").strip()
+    last_name = (tg_user.get("last_name") or "").strip()
+    full_name = " ".join(part for part in (first_name, last_name) if part).strip()
+    username = (tg_user.get("username") or "").strip() or full_name
+    return username, first_name
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def telegram_webhook(request):
+    """يستقبل تحديثات البوت. /start ref_<id> يخزن الإحالة قبل ما اللعبة تتفتح."""
+    message = request.data.get("message") or request.data.get("edited_message") or {}
+    if not isinstance(message, dict):
+        return Response({"ok": True})
+
+    payload = _telegram_start_payload(message.get("text") or "")
+    from_user = message.get("from") or {}
+    raw_telegram_id = from_user.get("id") if isinstance(from_user, dict) else None
+    if payload is None or raw_telegram_id in (None, ""):
+        return Response({"ok": True})
+
+    try:
+        telegram_id = int(raw_telegram_id)
+    except (TypeError, ValueError):
+        return Response({"ok": True})
+
+    referrer_id = parse_referrer_telegram_id(payload)
+    if not referrer_id or referrer_id == telegram_id:
+        return Response({"ok": True})
+
+    username, first_name = _telegram_profile_name(from_user)
+    user, _created = User.objects.get_or_create(
+        telegram_id=telegram_id,
+        defaults={
+            "username": username or None,
+            "first_name": first_name or None,
+        },
+    )
+
+    profile_updates = []
+    if username and (not user.username or user.username.lower() in {"newuser", "new user"}):
+        user.username = username
+        profile_updates.append("username")
+    if first_name and not user.first_name:
+        user.first_name = first_name
+        profile_updates.append("first_name")
+    if profile_updates:
+        user.save(update_fields=profile_updates)
+
+    link_user_to_referrer(user, referrer_id)
+    return Response({"ok": True})
 
 
 def index(request):

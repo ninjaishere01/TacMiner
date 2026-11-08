@@ -18,6 +18,7 @@ urlpatterns = [
 
 
     path('api/login/', views.login_or_register, name='api_login'),
+    path('api/telegram/webhook/', views.telegram_webhook, name='telegram_webhook'),
     path('api/collect/', views.collect_gold, name='api_collect'),   
     path('api/upgrade/', views.upgrade_worker, name='api_upgrade'), 
     path('api/workers/', views.get_workers, name='api_workers'),
