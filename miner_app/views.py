@@ -206,6 +206,7 @@ def login_or_register(request):
             "workers": user_workers,
             "is_partner": user.is_partner,
             "is_wallet_verified": user.is_wallet_verified,
+            "wallet_address": user.wallet_address,
             "ads_watched_today": user.ads_watched_today,
             "boost_ads_watched": user.boost_ads_watched,
             "last_boost_time": user.last_boost_time.isoformat() if user.last_boost_time else None,

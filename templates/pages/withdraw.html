@@ -189,11 +189,10 @@
                 currentUSDT.toFixed(2);
 
               if (data.user.wallet_address) {
-                  document.getElementById("wallet-address-display").innerText =
-                      data.user.wallet_address.slice(0, 10) + "..." + data.user.wallet_address.slice(-5);
+                  document.getElementById("wallet-address-display").innerText = 
+                      data.user.wallet_address.slice(0, 8) + "..." + data.user.wallet_address.slice(-5);
                   userWalletAddress = data.user.wallet_address;
               } else {
-                  // لو مفيش محفظة، اعرض "غير متصلة"
                   document.getElementById("wallet-connected-view").classList.add("d-none");
                   document.getElementById("wallet-not-connected-view").classList.remove("d-none");
               }
