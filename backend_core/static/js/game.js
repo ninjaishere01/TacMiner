@@ -70,9 +70,7 @@ function referralIdFromStartParam(startParam) {
 function captureReferralId() {
   const webApp = window.Telegram && window.Telegram.WebApp;
   const unsafeParam =
-    webApp && webApp.initDataUnsafe
-      ? webApp.initDataUnsafe.start_param
-      : null;
+    webApp && webApp.initDataUnsafe ? webApp.initDataUnsafe.start_param : null;
   const fromUnsafe = referralIdFromStartParam(unsafeParam);
   if (fromUnsafe) return fromUnsafe;
 
@@ -86,11 +84,32 @@ function captureReferralId() {
   return referralIdFromStartParam(readTelegramStartParam());
 }
 
+// ✅ قراءة referralId (من start_param أو من URL)
 let referralId = captureReferralId();
+
+// لو مش موجود من start_param، نحاول نقراه من URL
+if (!referralId) {
+  const urlParams = new URLSearchParams(window.location.search);
+  const refFromUrl = urlParams.get("ref");
+  if (refFromUrl) {
+    referralId = refFromUrl;
+  }
+}
+
+console.log("Referral ID:", referralId); // للتأكد
 
 document.addEventListener("DOMContentLoaded", () => {
   const latestReferralId = captureReferralId();
   if (latestReferralId) referralId = latestReferralId;
+
+  // محاولة تانية من URL بعد تحميل الصفحة
+  if (!referralId) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const refFromUrl = urlParams.get("ref");
+    if (refFromUrl) referralId = refFromUrl;
+  }
+
+  console.log("Referral ID (after DOM):", referralId);
 });
 
 const allWorkers = [
@@ -184,7 +203,8 @@ function buyWorker(workerId, price) {
           if (typeof window.applyProduction === "function") {
             window.applyProduction(data.production);
           } else {
-            window.productionPerSecond = Number(data.production.per_hour) / 3600;
+            window.productionPerSecond =
+              Number(data.production.per_hour) / 3600;
           }
         }
 
