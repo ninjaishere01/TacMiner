@@ -33,6 +33,7 @@ class User(models.Model):
     # التواريخ
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الانضمام")
     last_activity = models.DateTimeField(auto_now=True, verbose_name="آخر نشاط")
+    last_seen = models.DateTimeField(auto_now=True, verbose_name="آخر مرة دخل")
 
     def __str__(self):
         return f"{self.username or self.telegram_id}"

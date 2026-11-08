@@ -122,6 +122,15 @@ def login_or_register(request):
         defaults={'username': username}
     )
 
+    # التعدين وهو قافل البوت: الوقت من آخر دخول يتضاف للرصيد قبل أي حفظ تاني
+    if user.last_seen:
+        elapsed_seconds = (timezone.now() - user.last_seen).total_seconds()
+        if elapsed_seconds > 0:
+            production = calculate_user_production(user)
+            per_second = production["per_hour"] / 3600
+            user.balance += Decimal(str(per_second * elapsed_seconds))
+            user.save()
+
     display_name = (username or "").strip()
     if display_name and display_name.lower() not in {"newuser", "new user"}:
         if user.username != display_name:
