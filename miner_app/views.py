@@ -122,22 +122,28 @@ def login_or_register(request):
         defaults={'username': username}
     )
 
-    # التعدين وهو قافل البوت: الوقت من آخر دخول يتضاف للرصيد قبل أي حفظ تاني
+    # 1. التعدين وهو قافل البوت (نحسب الأول قبل أي حفظ)
     if user.last_seen:
         elapsed_seconds = (timezone.now() - user.last_seen).total_seconds()
         if elapsed_seconds > 0:
             production = calculate_user_production(user)
             per_second = production["per_hour"] / 3600
-            user.balance += Decimal(str(per_second * elapsed_seconds))
-            user.save()
+            earned = Decimal(str(per_second * elapsed_seconds))
+            if earned > 0:
+                user.balance += earned
 
+    # 2. تحديث last_seen يدوياً بعد حساب التعدين
+    user.last_seen = timezone.now()
+    user.save()
+
+    # 3. تحديث اسم اليوزر
     display_name = (username or "").strip()
     if display_name and display_name.lower() not in {"newuser", "new user"}:
         if user.username != display_name:
             user.username = display_name
             user.save(update_fields=["username"])
 
-    # الإحالة الأساسية جاية من الـ Webhook ومتخزنة في PendingReferral
+    # 4. الإحالة الأساسية جاية من الـ Webhook ومتخزنة في PendingReferral
     pending = PendingReferral.objects.filter(telegram_id=telegram_id).first()
     if pending is not None:
         if (
@@ -154,7 +160,7 @@ def login_or_register(request):
         if user.referred_by_id is not None or pending.referral_id == user.telegram_id:
             pending.delete()
 
-    # لو start_param وصل من اللعبة نستخدمه طالما اليوزر لسه مش مربوط
+    # 5. لو start_param وصل من اللعبة نستخدمه طالما اليوزر لسه مش مربوط
     referrer_id = parse_referrer_telegram_id(referral_id)
     if not referrer_id and user.pending_referral:
         referrer_id = int(user.pending_referral)
@@ -162,12 +168,12 @@ def login_or_register(request):
     if referrer_id and (created or user.referred_by_id is None):
         link_user_to_referrer(user, referrer_id)
 
-    # بنجيب العمال اللي معاه
+    # 6. بنجيب العمال اللي معاه
     user_workers = {}
     for uw in user.workers.all():
         user_workers[uw.worker.id] = uw.level
 
-    # بنحسب الوقت المتبقي للمضاعفة (ساعة واحدة)
+    # 7. بنحسب الوقت المتبقي للمضاعفة (ساعة واحدة)
     time_left = 0
     if user.last_boost_time:
         boost_end_time = user.last_boost_time + timedelta(hours=1)
@@ -179,9 +185,8 @@ def login_or_register(request):
                 user.boost_multiplier = 1.0
                 user.save()
 
-    # بنحسب الإنتاج الحالي للعمال
+    # 8. بنحسب الإنتاج الحالي للعمال
     production = calculate_user_production(user)
-    # العدد والقائمة بعد حفظ الربط، عشان صاحب الدعوة يشوف الرقم محدّث
     referred_users = list(user.referrals.all())
     referrals_list = []
     for ref in referred_users:
@@ -213,7 +218,6 @@ def login_or_register(request):
             "completed_tasks": [task.task_name for task in user.tasks.all()],
         }
     })
-
 
 
 @api_view(['POST'])
