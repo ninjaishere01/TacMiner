@@ -5,7 +5,16 @@ from miner_app.models import Worker, User, UserWorker, WithdrawRequest #
 
 admin.site.register(Worker)
 admin.site.register(UserWorker)
-admin.site.register(User)
+
+
+@admin.register(User)
+class UserAdmin(admin.ModelAdmin):
+    list_display = ("username", "referrals_count", "telegram_id")
+    search_fields = ("username", "telegram_id")
+
+    @admin.display(description="عدد الدعوات")
+    def referrals_count(self, obj):
+        return obj.referrals.count()
 
 
 @admin.register(WithdrawRequest)
