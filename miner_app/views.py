@@ -122,14 +122,18 @@ def login_or_register(request):
         defaults={'username': username}
     )
 
-    # أرباح وقت إغلاق البوت جاية محسوبة من الفرونت
-    try:
-        offline_earnings = Decimal(str(request.data.get('offline_earnings', 0)))
-        if offline_earnings > 0:
-            user.balance += offline_earnings
-    except:
-        pass
-    user.save()
+    if user.last_collected_at:
+        elapsed_seconds = (timezone.now() - user.last_collected_at).total_seconds()
+        if elapsed_seconds > 60:  # لو عدت دقيقة على الأقل
+            production = calculate_user_production(user)
+            per_second = production["per_hour"] / 3600
+            earned = Decimal(str(per_second * elapsed_seconds))
+            if earned > 0:
+                user.balance += earned
+                user.save(update_fields=['balance'])
+
+    user.last_collected_at = timezone.now()
+    user.save(update_fields=['last_collected_at'])
 
     # 3. تحديث اسم اليوزر
     display_name = (username or "").strip()

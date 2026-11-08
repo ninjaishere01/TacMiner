@@ -141,7 +141,6 @@ function buyWorker(workerId, price) {
     .then((data) => {
       if (data.message === "Upgraded!") {
         updateBalanceUI(data.new_balance);
-        localStorage.setItem("lastCollectedTime", Date.now().toString());
         updateUpgradeUI();
 
         if (data.production) {
