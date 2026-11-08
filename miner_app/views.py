@@ -122,18 +122,13 @@ def login_or_register(request):
         defaults={'username': username}
     )
 
-    # حساب التعدين من آخر مرة تم تحديث الرصيد
-    if user.last_collected_at:
-        elapsed_seconds = (timezone.now() - user.last_collected_at).total_seconds()
-        if elapsed_seconds > 10:  # 10 ثواني على الأقل عشان نتجنب الحسابات الصغيرة
-            production = calculate_user_production(user)
-            per_second = production["per_hour"] / 3600
-            earned = Decimal(str(per_second * elapsed_seconds))
-            if earned > 0:
-                user.balance += earned
-
-    # تحديث last_collected_at لآخر وقت
-    user.last_collected_at = timezone.now()
+    # أرباح وقت إغلاق البوت جاية محسوبة من الفرونت
+    try:
+        offline_earnings = Decimal(str(request.data.get('offline_earnings', 0)))
+        if offline_earnings > 0:
+            user.balance += offline_earnings
+    except:
+        pass
     user.save()
 
     # 3. تحديث اسم اليوزر

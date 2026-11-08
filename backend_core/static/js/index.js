@@ -171,6 +171,7 @@ function collectGold() {
           createFlyingCoins();
 
           updateBalanceUI(data.new_balance);
+          localStorage.setItem("lastCollectedTime", Date.now().toString());
 
           setTimeout(() => {
             Swal.fire({
@@ -212,6 +213,7 @@ function applyProduction(production) {
   if (!Number.isFinite(perSecond)) return;
 
   window.productionPerSecond = perSecond;
+  localStorage.setItem("productionPerSecond", String(perSecond));
 
   const statHourEl = document.getElementById("stat-hour");
   const statDayEl = document.getElementById("stat-day");
@@ -234,6 +236,7 @@ function simulateMining() {
       localStorage.setItem("mineStorage", storage);
       storageEl.innerText = storage.toFixed(4);
     }
+    localStorage.setItem("lastCollectedTime", Date.now().toString());
   }
 }
 // 8. دالة رسم لوحة المتصدرين
@@ -395,6 +398,19 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // 1. تسجيل الدخول وجلب بيانات اليوزر
+  let offlineEarnings = 0;
+  const savedRate = parseFloat(localStorage.getItem("productionPerSecond"));
+  if (!window.productionPerSecond && Number.isFinite(savedRate)) {
+    window.productionPerSecond = savedRate;
+  }
+  let lastCollected = localStorage.getItem("lastCollectedTime");
+  if (lastCollected && window.productionPerSecond) {
+    let elapsed = (Date.now() - parseInt(lastCollected)) / 1000;
+    if (elapsed > 10) {
+      offlineEarnings = elapsed * window.productionPerSecond;
+    }
+  }
+
   fetch("/api/login/", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -402,11 +418,13 @@ document.addEventListener("DOMContentLoaded", () => {
       telegram_id: telegramId,
       username: username,
       referral_id: referralId,
+      offline_earnings: offlineEarnings,
     }),
   })
     .then((res) => res.json())
     .then((data) => {
       if (data.message === "Success") {
+        localStorage.setItem("lastCollectedTime", Date.now().toString());
         updateBalanceUI(data.user.balance);
 
         const displayName = data.user.username || username;
