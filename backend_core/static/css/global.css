@@ -332,3 +332,13 @@ button:active, .btn:active, .action-btn:active, .worker-slot:active {
 main, .mine-container {
   animation: fadeInUp 0.5s ease-out forwards;
 }
+
+/* منع قائمة الضغط المطول على الصور */
+img {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
