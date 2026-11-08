@@ -1,15 +1,50 @@
-// قراءة بيانات تيليجرام
-let telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-let telegramId = telegramUser ? telegramUser.id : 123456789;
-let username = telegramUser
-  ? telegramUser.username || telegramUser.first_name
-  : "newuser";
+// قراءة بيانات تيليجرام الحقيقية من WebApp
+const telegramWebApp = window.Telegram && window.Telegram.WebApp;
+if (telegramWebApp && typeof telegramWebApp.ready === "function") {
+  telegramWebApp.ready();
+}
+
+const telegramUser =
+  telegramWebApp &&
+  telegramWebApp.initDataUnsafe &&
+  telegramWebApp.initDataUnsafe.user
+    ? telegramWebApp.initDataUnsafe.user
+    : null;
+
+let telegramId = telegramUser ? telegramUser.id : null;
+
+function resolveTelegramUsername(user) {
+  if (!user) return "new user";
+  const fullName = [user.first_name, user.last_name]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+  return fullName || user.username || "new user";
+}
+
+let username = resolveTelegramUsername(telegramUser);
+
+function applyTelegramName() {
+  if (!username || username === "new user") return;
+  document.querySelectorAll(".my-user, #profile-username").forEach((el) => {
+    el.textContent = username;
+  });
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", applyTelegramName);
+} else {
+  applyTelegramName();
+}
 
 // قراءة رابط الإحالة (لو موجود)
 let referralId = null;
-let startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
-if (startParam && startParam.startsWith("ref_")) {
-  referralId = startParam.replace("ref_", "");
+const startParam =
+  telegramWebApp &&
+  telegramWebApp.initDataUnsafe &&
+  telegramWebApp.initDataUnsafe.start_param;
+if (startParam && String(startParam).startsWith("ref_")) {
+  referralId = String(startParam).replace("ref_", "");
 }
 
 const allWorkers = [

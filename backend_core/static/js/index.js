@@ -400,6 +400,11 @@ document.addEventListener("DOMContentLoaded", () => {
       if (data.message === "Success") {
         updateBalanceUI(data.user.balance);
 
+        const displayName = data.user.username || username;
+        document.querySelectorAll(".my-user, #profile-username").forEach((el) => {
+          if (displayName && displayName !== "new user") el.textContent = displayName;
+        });
+
         let totalLevels = 0;
         for (let workerId in data.user.workers) {
           totalLevels += data.user.workers[workerId];

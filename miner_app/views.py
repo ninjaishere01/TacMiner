@@ -64,6 +64,12 @@ def login_or_register(request):
         defaults={'username': username}
     )
 
+    display_name = (username or "").strip()
+    if display_name and display_name.lower() not in {"newuser", "new user"}:
+        if user.username != display_name:
+            user.username = display_name
+            user.save(update_fields=["username"])
+
     # لو المستخدم جديد، وفيه referral_id، بنربطه بصاحب الدعوة
     if created and referral_id:
         try:
