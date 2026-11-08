@@ -85,7 +85,7 @@
 
             <div id="wallet-connected-view">
               <p class="text-success small mb-0 mt-2">
-                <i class="fa-solid fa-check-circle"></i> متصلة: UQBx...3fD2
+                <i class="fa-solid fa-check-circle"></i> متصلة: <span id="wallet-address-display">UQBx...3fD2</span>
               </p>
             </div>
             <div id="wallet-not-connected-view" class="d-none">
@@ -188,9 +188,14 @@
               document.getElementById("usdt-balance").innerText =
                 currentUSDT.toFixed(2);
 
-              // لو اليوزر عنده محفظة مسجلة، نستخدمها
               if (data.user.wallet_address) {
-                userWalletAddress = data.user.wallet_address;
+                  document.getElementById("wallet-address-display").innerText =
+                      data.user.wallet_address.slice(0, 10) + "..." + data.user.wallet_address.slice(-5);
+                  userWalletAddress = data.user.wallet_address;
+              } else {
+                  // لو مفيش محفظة، اعرض "غير متصلة"
+                  document.getElementById("wallet-connected-view").classList.add("d-none");
+                  document.getElementById("wallet-not-connected-view").classList.remove("d-none");
               }
 
               checkWithdrawEligibility();
