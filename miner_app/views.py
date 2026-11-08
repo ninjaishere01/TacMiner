@@ -122,18 +122,18 @@ def login_or_register(request):
         defaults={'username': username}
     )
 
-    # 1. التعدين وهو قافل البوت (نحسب الأول قبل أي حفظ)
-    if user.last_seen:
-        elapsed_seconds = (timezone.now() - user.last_seen).total_seconds()
-        if elapsed_seconds > 0:
+    # حساب التعدين من آخر مرة تم تحديث الرصيد
+    if user.last_collected_at:
+        elapsed_seconds = (timezone.now() - user.last_collected_at).total_seconds()
+        if elapsed_seconds > 10:  # 10 ثواني على الأقل عشان نتجنب الحسابات الصغيرة
             production = calculate_user_production(user)
             per_second = production["per_hour"] / 3600
             earned = Decimal(str(per_second * elapsed_seconds))
             if earned > 0:
                 user.balance += earned
 
-    # 2. تحديث last_seen يدوياً بعد حساب التعدين
-    user.last_seen = timezone.now()
+    # تحديث last_collected_at لآخر وقت
+    user.last_collected_at = timezone.now()
     user.save()
 
     # 3. تحديث اسم اليوزر
