@@ -37,14 +37,35 @@ if (document.readyState === "loading") {
   applyTelegramName();
 }
 
-// قراءة رابط الإحالة (لو موجود)
+function readTelegramStartParam() {
+  const unsafeParam =
+    telegramWebApp &&
+    telegramWebApp.initDataUnsafe &&
+    telegramWebApp.initDataUnsafe.start_param;
+  if (unsafeParam) return String(unsafeParam);
+
+  const sources = [];
+  if (window.location.hash) sources.push(window.location.hash.slice(1));
+  if (window.location.search) sources.push(window.location.search.slice(1));
+  for (const source of sources) {
+    const params = new URLSearchParams(source);
+    const value =
+      params.get("tgWebAppStartParam") ||
+      params.get("startapp") ||
+      params.get("start_param");
+    if (value) return value;
+  }
+  return "";
+}
+
+// referral_id جاي من start_param (ref_<telegram_id>)
 let referralId = null;
-const startParam =
-  telegramWebApp &&
-  telegramWebApp.initDataUnsafe &&
-  telegramWebApp.initDataUnsafe.start_param;
-if (startParam && String(startParam).startsWith("ref_")) {
-  referralId = String(startParam).replace("ref_", "");
+const startParam = readTelegramStartParam();
+if (startParam) {
+  const normalized = String(startParam).startsWith("ref_")
+    ? String(startParam).slice(4)
+    : String(startParam);
+  if (/^\d+$/.test(normalized)) referralId = normalized;
 }
 
 const allWorkers = [

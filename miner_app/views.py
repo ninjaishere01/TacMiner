@@ -53,13 +53,18 @@ def calculate_user_production(user):
 def login_or_register(request):
     telegram_id = request.data.get('telegram_id')
     username = request.data.get('username', '')
-    referral_id = request.data.get('referral_id') # <-- جديد
+    referral_id = request.data.get('referral_id')
 
     if not telegram_id:
         return Response({"error": "Telegram ID is required"}, status=400)
 
+    try:
+        telegram_id = int(str(telegram_id).strip())
+    except (TypeError, ValueError):
+        return Response({"error": "Telegram ID is required"}, status=400)
+
     # بنشوف المستخدم موجود ولا جديد
-    user, created = User.objects.get_or_create(
+    user, _created = User.objects.get_or_create(
         telegram_id=telegram_id,
         defaults={'username': username}
     )
@@ -70,14 +75,20 @@ def login_or_register(request):
             user.username = display_name
             user.save(update_fields=["username"])
 
-    # لو المستخدم جديد، وفيه referral_id، بنربطه بصاحب الدعوة
-    if created and referral_id:
-        try:
-            referrer = User.objects.get(telegram_id=referral_id)
+    # لو الحساب لسه من غير صاحب دعوة، ووصل referral_id، بنربطه
+    referrer_id = None
+    if referral_id not in (None, ""):
+        referrer_text = str(referral_id).strip()
+        if referrer_text.lower().startswith("ref_"):
+            referrer_text = referrer_text[4:]
+        if referrer_text.isdigit():
+            referrer_id = int(referrer_text)
+
+    if referrer_id and referrer_id != user.telegram_id and user.referred_by_id is None:
+        referrer = User.objects.filter(telegram_id=referrer_id).first()
+        if referrer and referrer.pk != user.pk:
             user.referred_by = referrer
-            user.save()
-        except User.DoesNotExist:
-            pass # لو صاحب الدعوة مش موجود، متعملش حاجة
+            user.save(update_fields=["referred_by"])
 
     # بنجيب العمال اللي معاه
     user_workers = {}
@@ -101,7 +112,7 @@ def login_or_register(request):
     referrals_list = []
     for ref in user.referrals.all(): # referrals هو related_name
         referrals_list.append({
-            "username": ref.username,
+            "username": ref.username or str(ref.telegram_id),
             "balance": float(ref.balance)
         })
 

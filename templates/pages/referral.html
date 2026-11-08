@@ -428,7 +428,7 @@
         // تحديث رابط الإحالة
         const refLinkInput = document.getElementById("ref-link");
         if (refLinkInput && telegramId) {
-          refLinkInput.value = `https://t.me/TacMinerApp_Bot?start=ref_${telegramId}`;
+          refLinkInput.value = `https://t.me/TacMinerApp_Bot?startapp=ref_${telegramId}`;
         }
 
         // بنجيب بيانات اليوزر (فيها رصيد الإحالة والأصدقاء)
@@ -438,6 +438,7 @@
           body: JSON.stringify({
             telegram_id: telegramId,
             username: username,
+            referral_id: referralId,
           }),
         })
           .then((res) => res.json())
