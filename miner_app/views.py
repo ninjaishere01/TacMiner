@@ -101,6 +101,8 @@ def calculate_user_production(user):
     }
 
 
+
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login_or_register(request):
@@ -173,16 +175,24 @@ def login_or_register(request):
         user_workers[uw.worker.id] = uw.level
 
     # 7. بنحسب الوقت المتبقي للمضاعفة (ساعة واحدة)
+        # 7. بنحسب الوقت المتبقي للمضاعفة (ساعة) + الاستراحة (8 ساعات)
     time_left = 0
+    boost_cooldown_left = 0  # <-- جديد
     if user.last_boost_time:
         boost_end_time = user.last_boost_time + timedelta(hours=1)
         now = timezone.now()
         if now < boost_end_time:
+            # البوست شغال (ساعة)
             time_left = int((boost_end_time - now).total_seconds())
         else:
+            # البوست خلص، بنشوف لو في استراحة 8 ساعات
             if user.boost_multiplier != 1.0:
                 user.boost_multiplier = 1.0
                 user.save()
+            
+            cooldown_end = user.last_boost_time + timedelta(hours=8)
+            if now < cooldown_end:
+                boost_cooldown_left = int((cooldown_end - now).total_seconds())
 
     # 8. بنحسب الإنتاج الحالي للعمال
     production = calculate_user_production(user)
@@ -217,8 +227,12 @@ def login_or_register(request):
             "production": production,
             "completed_tasks": [task.task_name for task in user.tasks.all()],
             "offline_earnings": offline_earnings,
+            "boost_cooldown_left": boost_cooldown_left,
         }
     })
+
+
+
 
 
 @api_view(['POST'])

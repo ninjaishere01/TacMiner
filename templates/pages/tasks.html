@@ -10,7 +10,6 @@
     <title>المهام - TAC Miner</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-
     <!-- مكتبات أساسية -->
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
@@ -148,7 +147,7 @@
             <i class="fa-brands fa-telegram text-info"></i>
           </div>
           <div class="task-info">
-            <h6> Tac Mining Company </h6>
+            <h6>Tac Mining Company</h6>
             <span class="task-reward">+ 50 TAC</span>
           </div>
           <div class="d-flex flex-column gap-1" id="channel-actions-1">
@@ -175,7 +174,7 @@
             <i class="fa-brands fa-telegram text-info"></i>
           </div>
           <div class="task-info">
-            <h6> Tac Mining Community </h6>
+            <h6>Tac Mining Community</h6>
             <span class="task-reward">+ 50 TAC</span>
           </div>
           <div class="d-flex flex-column gap-1" id="channel-actions-2">
@@ -202,7 +201,7 @@
             <i class="fa-brands fa-telegram text-info"></i>
           </div>
           <div class="task-info">
-            <h6> Tac Mining Chat </h6>
+            <h6>Tac Mining Chat</h6>
             <span class="task-reward">+ 50 TAC</span>
           </div>
           <div class="d-flex flex-column gap-1" id="channel-actions-3">
@@ -228,7 +227,7 @@
             <i class="fa-brands fa-telegram text-info"></i>
           </div>
           <div class="task-info">
-            <h6> Tac Mining Withdrawal </h6>
+            <h6>Tac Mining Withdrawal</h6>
             <span class="task-reward">+ 50 TAC</span>
           </div>
           <div class="d-flex flex-column gap-1" id="channel-actions-4">
@@ -249,8 +248,7 @@
           </div>
         </div>
         <!-- dev فاضي 5 -->
-        <div class="task-card">
-        </div>
+        <div class="task-card"></div>
       </div>
     </main>
 
@@ -433,7 +431,11 @@
         fetch("/api/watch-ad/", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ telegram_id: telegramId, username: username, ad_type: "boost" }),
+          body: JSON.stringify({
+            telegram_id: telegramId,
+            username: username,
+            ad_type: "boost",
+          }),
         })
           .then((res) => res.json())
           .then((data) => {
@@ -462,10 +464,9 @@
                 icon: "success",
               });
 
-              localStorage.setItem("lastBoostTime", new Date().toISOString());
               let boostBtn = document.getElementById("boost-btn");
               if (boostBtn) boostBtn.style.display = "none";
-              startBoostTimer();
+              startBoostTimer(3600); // نبدأ عداد الساعة
             } else {
               Swal.fire({
                 title: "خطأ",
@@ -481,11 +482,10 @@
       // ==========================================
       // 4. دالة العداد التنازلي للبوست (ساعة)
       // ==========================================
-      function startBoostTimer(serverTimeLeft = null) {
+      function startBoostTimer(secondsLeft) {
         const boostBtn = document.getElementById("boost-btn");
         if (!boostBtn) return;
 
-        // بنخفي الزرار
         boostBtn.style.display = "none";
 
         let timerElement = document.getElementById("boost-timer");
@@ -496,45 +496,25 @@
           timerElement.style.color = "var(--wood-text-dark)";
           timerElement.style.fontSize = "13px";
           timerElement.style.marginTop = "5px";
-
-          // التعديل هنا: بنحط العداد في كارت المضاعفة المحدد بالـ ID
           document
             .getElementById("boost-card-container")
             .appendChild(timerElement);
         }
 
-        let timeLeft = serverTimeLeft !== null ? serverTimeLeft : null;
+        let timeLeft = secondsLeft;
 
         let timerInterval = setInterval(() => {
-          if (timeLeft === null) {
-            let lastTime = localStorage.getItem("lastBoostTime");
-            if (!lastTime) {
-              clearInterval(timerInterval);
-              timerElement.remove();
-              boostBtn.style.display = "block";
-              boostBtn.innerText = "شاهد";
-              return;
-            }
-            let targetTime = new Date(lastTime).getTime() + 1 * 60 * 60 * 1000;
-            let now = new Date().getTime();
-            timeLeft = Math.floor((targetTime - now) / 1000);
-          }
-
           if (timeLeft <= 0) {
             clearInterval(timerInterval);
             timerElement.remove();
-
-            let cooldownEnd = new Date().getTime() + 8 * 60 * 60 * 1000;
-            localStorage.setItem("boostCooldownEnd", cooldownEnd);
-
-            startBoostCooldownTimer(cooldownEnd);
-
+            // نبدأ استراحة 8 ساعات
+            startBoostCooldownTimer(8 * 60 * 60);
             boostBtn.style.display = "none";
             document.getElementById("boost-watched").innerText = "0";
             document.getElementById("boost-progress").style.width = "0%";
           } else {
-            let minutes = Math.floor((timeLeft % (60 * 60)) / 60);
-            let seconds = Math.floor(timeLeft % 60);
+            let minutes = Math.floor((timeLeft % 3600) / 60);
+            let seconds = timeLeft % 60;
             timerElement.innerText = `سرعة التعدين الآن حتى: ${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
             timeLeft--;
           }
@@ -544,7 +524,7 @@
       // ==========================================
       // 5. دالة عداد الاستراحة (8 ساعات)
       // ==========================================
-      function startBoostCooldownTimer(cooldownEnd) {
+      function startBoostCooldownTimer(secondsLeft) {
         const boostBtn = document.getElementById("boost-btn");
         let timerElement = document.getElementById("boost-timer");
 
@@ -555,34 +535,28 @@
           timerElement.style.color = "var(--wood-text-dark)";
           timerElement.style.fontSize = "13px";
           timerElement.style.marginTop = "5px";
-
-          // التعديل هنا: بنحط العداد في كارت المضاعفة المحدد بالـ ID
           document
             .getElementById("boost-card-container")
             .appendChild(timerElement);
         }
 
-        let timerInterval = setInterval(() => {
-          let now = new Date().getTime();
-          let timeLeft = cooldownEnd - now;
+        let timeLeft = secondsLeft;
 
+        let timerInterval = setInterval(() => {
           if (timeLeft <= 0) {
             clearInterval(timerInterval);
-            localStorage.removeItem("boostCooldownEnd");
             timerElement.remove();
-
             boostBtn.style.display = "block";
             boostBtn.innerText = "شاهد";
             boostBtn.disabled = false;
             document.getElementById("boost-watched").innerText = "0";
             document.getElementById("boost-progress").style.width = "0%";
           } else {
-            let hours = Math.floor(timeLeft / (1000 * 60 * 60));
-            let minutes = Math.floor(
-              (timeLeft % (1000 * 60 * 60)) / (1000 * 60),
-            );
-            let seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+            let hours = Math.floor(timeLeft / 3600);
+            let minutes = Math.floor((timeLeft % 3600) / 60);
+            let seconds = timeLeft % 60;
             timerElement.innerText = `متاح بعد: ${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+            timeLeft--;
           }
         }, 1000);
       }
@@ -591,7 +565,7 @@
         const actions = document.getElementById(`channel-actions-${taskId}`);
         if (!actions) return;
         actions.innerHTML =
-          '<span class="text-success fw-bold">تم إنهاء المهمة ✅</span>';
+          '<span class="text-success">تم إنهاء المهمة </span>';
       }
 
       // ==========================================
@@ -654,31 +628,20 @@
                 boostProgressEl.style.width = `${(boostCount / 5) * 100}%`;
               }
 
-              // --- ج. التحقق من العداد التنازلي ---
+              // --- ج. التحقق من العداد التنازلي (ساعة البوست أو 8 ساعات الاستراحة) ---
               let boostBtn = document.getElementById("boost-btn");
               if (!boostBtn) return;
 
               if (user.time_left > 0) {
+                // البوست شغال (ساعة)
                 boostBtn.style.display = "none";
                 startBoostTimer(user.time_left);
-              } else if (user.boost_multiplier > 1.0) {
-                let cooldownEnd = localStorage.getItem("boostCooldownEnd");
-                if (cooldownEnd) {
-                  let now = new Date().getTime();
-                  if (now < cooldownEnd) {
-                    boostBtn.style.display = "none";
-                    startBoostCooldownTimer(cooldownEnd);
-                  } else {
-                    localStorage.removeItem("boostCooldownEnd");
-                    boostBtn.style.display = "block";
-                    boostBtn.innerText = "شاهد";
-                    boostBtn.disabled = false;
-                  }
-                } else {
-                  boostBtn.style.display = "block";
-                  boostBtn.innerText = "شاهد";
-                }
+              } else if (user.boost_cooldown_left > 0) {
+                // البوست خلص، في استراحة 8 ساعات
+                boostBtn.style.display = "none";
+                startBoostCooldownTimer(user.boost_cooldown_left);
               } else {
+                // مفيش بوست ولا استراحة
                 boostBtn.style.display = "block";
                 boostBtn.innerText = "شاهد";
                 boostBtn.disabled = false;
