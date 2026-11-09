@@ -401,7 +401,7 @@ def verify_wallet(request):
             try:
                 from tonsdk.utils import Address
                 addr = Address(wallet_address)
-                friendly_addr = addr.to_string(is_user_friendly=True, is_bounceable=False)
+                friendly_addr = addr.to_string(is_user_friendly=True, is_bounceable=False, is_url_safe=True)
                 user.wallet_address = friendly_addr
             except:
                 user.wallet_address = wallet_address
