@@ -395,7 +395,16 @@ def verify_wallet(request):
 
     try:
         user = User.objects.get(telegram_id=telegram_id)
-        user.wallet_address = wallet_address
+        if str(wallet_address).startswith("0:"):
+            try:
+                from tonsdk.utils import Address
+                addr = Address(wallet_address)
+                friendly_addr = addr.to_string(is_user_friendly=True, is_bounceable=True)
+                user.wallet_address = friendly_addr
+            except:
+                user.wallet_address = wallet_address
+        else:
+            user.wallet_address = wallet_address
         user.is_wallet_verified = True # بنوثق المحفظة
         user.save()
 

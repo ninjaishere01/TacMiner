@@ -254,7 +254,7 @@
 
         tonConnectUI.onStatusChange(async (walletInfo) => {
             if (walletInfo && walletInfo.account && walletInfo.account.address) {
-                const walletAddress = walletInfo.account.address;
+                const walletAddress = walletInfo.account.friendlyAddress || walletInfo.account.address;
                 fetch('/api/verify-wallet/', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
