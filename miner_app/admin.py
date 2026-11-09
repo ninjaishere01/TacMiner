@@ -19,6 +19,6 @@ class UserAdmin(admin.ModelAdmin):
 
 @admin.register(WithdrawRequest)
 class WithdrawRequestAdmin(admin.ModelAdmin):
-    list_display = ('user', 'amount', 'wallet_address', 'status', 'created_at')
+    list_display = ('user', 'amount', 'wallet_address', 'status', 'note' , 'created_at')
     list_filter = ('status',)
-    search_fields = ('user__username', 'wallet_address')
+    search_fields = ('user__username', 'wallet_address', 'note')

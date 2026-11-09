@@ -96,6 +96,7 @@ class WithdrawRequest(models.Model):
     wallet_address = models.CharField(max_length=255, verbose_name="عنوان المحفظة")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name="الحالة")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الطلب")
+    note = models.CharField(max_length=255, blank=True, null=True, verbose_name="ملاحظة (سبب الرفض)")
 
     def __str__(self):
         return f"{self.user.username} - {self.amount} USDT - {self.status}"

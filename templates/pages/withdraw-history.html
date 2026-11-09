@@ -167,6 +167,7 @@
                     <div class="trx-details">
                       <span class="trx-title">سحب USDT - ${statusText}</span>
                       <span class="trx-date">${req.date}</span>
+                      ${req.note ? `<span style="color: #ff5252; font-size: 11px; font-weight: bold; margin-top: 2px;">السبب: ${req.note}</span>` : ''}
                     </div>
                   </div>
                   <div class="trx-amount ${amountClass}">${req.amount.toFixed(2)}</div>
