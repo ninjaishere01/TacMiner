@@ -687,6 +687,7 @@ def get_withdraw_history(request):
                 "amount": float(w.amount),
                 "wallet_address": w.wallet_address,
                 "status": w.status,
+                "note": w.note or "",
                 "date": w.created_at.strftime("%Y-%m-%d %H:%M")
             })
             
