@@ -70,3 +70,22 @@
   transform: translateY(5px);
   box-shadow: 0 0 0;
 }
+/* زرار ربط المحفظة (يظهر لما المحفظة مش مربوطة) */
+.btn-connect-wallet {
+  background: linear-gradient(to bottom, #00d2ff, #0052ff);
+  color: #fff;
+  font-weight: 900;
+  font-size: 14px;
+  border-radius: 10px;
+  padding: 10px;
+  box-shadow: 0 4px 0 #003399;
+  text-decoration: none;
+  display: block;
+  text-align: center;
+  transition: transform 0.1s;
+}
+
+.btn-connect-wallet:active {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 #003399;
+}
