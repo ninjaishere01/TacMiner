@@ -59,6 +59,7 @@
     <main class="pt-5 pb-5 mt-5 d-flex justify-content-center w-100">
       <div class="mine-container">
         <h4 class="text-white text-center mb-4">المهام اليومية</h4>
+
         <!-- تسجيل الدخول اليومي (Streak) -->
         <div class="streak-container mb-4">
           <div class="d-flex justify-content-between align-items-center mb-2">
@@ -75,6 +76,14 @@
           <p class="text-muted text-center mt-2 mb-0" style="font-size: 10px">
             سجل دخولك كل يوم، وفي اليوم الـ 30 هتاخد عامل Dragon مجاناً!
           </p>
+          <button
+            class="btn btn-warning w-100 mt-2 fw-bold"
+            id="daily-checkin-btn"
+            onclick="dailyCheckIn()"
+            style="border-radius: 8px; padding: 10px; font-size: 14px"
+          >
+            <i class="fa-solid fa-calendar-check"></i> سجل حضورك اليوم
+          </button>
         </div>
 
         <!-- مهمة مشاهدة الإعلانات (تفعيل التعدين) -->
@@ -238,6 +247,7 @@
             </button>
           </div>
         </div>
+
         <!-- مهمة القناة 4 -->
         <div class="task-card">
           <div class="task-icon-box">
@@ -264,8 +274,6 @@
             </button>
           </div>
         </div>
-        <!-- dev فاضي 5 -->
-        <div class="task-card"></div>
       </div>
     </main>
 
@@ -595,10 +603,19 @@
         let html = "";
         for (let i = 1; i <= 30; i++) {
           let className = "streak-day";
+          // اليوم اللي خلص عليه علامة صح
           if (i <= dailyStreak) {
-            className += " done"; // الأيام اللي خلصت
-          } else if (i === dailyStreak + 1) {
-            className += " current"; // اليوم الحالي
+            className += " done";
+            html += `<div class="${className}"><i class="fa-solid fa-check"></i></div>`;
+            continue;
+          }
+          // اليوم الحالي
+          else if (i === dailyStreak + 1) {
+            className += " current";
+          }
+          // اليوم 30 (الجايزة)
+          if (i === 30) {
+            className += " last-day";
           }
           html += `<div class="${className}">${i}</div>`;
         }
@@ -610,7 +627,54 @@
       }
 
       // ==========================================
-      // 7. التشغيل عند تحميل الصفحة
+      // 7. دالة تسجيل الحضور
+      // ==========================================
+      function dailyCheckIn() {
+        fetch("/api/daily-check-in/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            telegram_id: telegramId,
+          }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.message === "Check-in Successful!") {
+              if (typeof updateBalanceUI === "function") {
+                updateBalanceUI(data.new_balance);
+              }
+              document.getElementById("global-balance").innerText =
+                data.new_balance.toLocaleString("en-US");
+
+              Swal.fire({
+                title: "تم تسجيل الحضور!",
+                text: data.reward_message,
+                icon: "success",
+                timer: 2000,
+                showConfirmButton: false,
+              });
+
+              // تحديث الشبكة والزرار
+              renderStreakGrid(data.daily_streak);
+              const checkBtn = document.getElementById("daily-checkin-btn");
+              if (checkBtn) {
+                checkBtn.disabled = true;
+                checkBtn.innerText = "تم تسجيل اليوم";
+              }
+            } else {
+              Swal.fire({
+                title: "تنبيه",
+                text: data.error,
+                icon: "warning",
+                confirmButtonText: "حسناً",
+              });
+            }
+          })
+          .catch((err) => console.error("Error:", err));
+      }
+
+      // ==========================================
+      // 8. التشغيل عند تحميل الصفحة
       // ==========================================
       document.addEventListener("DOMContentLoaded", () => {
         fetch("/api/login/", {
@@ -629,6 +693,13 @@
 
               // ✅ استدعاء رسم شبكة الـ 30 يوم
               renderStreakGrid(user.daily_streak || 0);
+
+              // ✅ تحديث حالة زرار الحضور
+              const checkBtn = document.getElementById("daily-checkin-btn");
+              if (checkBtn && user.has_checked_today) {
+                checkBtn.disabled = true;
+                checkBtn.innerText = "تم تسجيل اليوم";
+              }
 
               const completedTasks = user.completed_tasks || [];
               ["channel_1", "channel_2", "channel_3", "channel_4"].forEach(

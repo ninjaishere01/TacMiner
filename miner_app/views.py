@@ -227,6 +227,7 @@ def login_or_register(request):
             "production": production,
             "completed_tasks": [task.task_name for task in user.tasks.all()],
             "offline_earnings": offline_earnings,
+            "has_checked_today": user.last_daily_check == timezone.now().date() if user.last_daily_check else False,
             "boost_cooldown_left": boost_cooldown_left,
             "daily_streak": user.daily_streak,
         }
