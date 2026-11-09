@@ -85,7 +85,8 @@
 
             <div id="wallet-connected-view">
               <p class="text-success small mb-0 mt-2">
-                <i class="fa-solid fa-check-circle"></i> متصلة: <span id="wallet-address-display">...</span>
+                <i class="fa-solid fa-check-circle"></i> متصلة:
+                <span id="wallet-address-display">...</span>
               </p>
             </div>
             <div id="wallet-not-connected-view" class="d-none">
@@ -117,6 +118,19 @@
           >
             سحب الآن
           </button>
+
+          <!-- التنبيه (شرط الإحالات) -->
+          <div
+            id="referral-warning"
+            class="alert alert-warning mt-3 d-none"
+            role="alert"
+          >
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            يجب عليك دعوة 3 أصدقاء على الأقل لتتمكن من السحب.
+            <a href="{% url 'referral' %}" class="alert-link"
+              >اذهب لصفحة الإحالة</a
+            >
+          </div>
         </div>
       </div>
     </main>
@@ -167,6 +181,7 @@
     <script>
       let currentUSDT = 0;
       let userWalletAddress = null;
+      let referralsCount = 0; // <-- جديد
 
       document.addEventListener("DOMContentLoaded", () => {
         fetch("/api/login/", {
@@ -185,19 +200,35 @@
                 updateBalanceUI(data.user.balance);
               }
               currentUSDT = data.user.usdt_balance;
-              document.getElementById("usdt-balance").innerText = currentUSDT.toFixed(2);
+              document.getElementById("usdt-balance").innerText =
+                currentUSDT.toFixed(2);
+
+              // ✅ عدد الإحالات
+              referralsCount =
+                data.user.referrals_count || (data.user.referrals || []).length;
 
               if (data.user.wallet_address) {
-                  userWalletAddress = data.user.wallet_address;
-                  // عرض العنوان: أول 6 حروف + ... + آخر 4 حروف
-                  const addr = userWalletAddress;
-                  const displayAddr = addr.length > 10 ? addr.slice(0, 6) + "..." + addr.slice(-4) : addr;
-                  document.getElementById("wallet-address-display").innerText = displayAddr;
-                  document.getElementById("wallet-connected-view").classList.remove("d-none");
-                  document.getElementById("wallet-not-connected-view").classList.add("d-none");
+                userWalletAddress = data.user.wallet_address;
+                const addr = userWalletAddress;
+                const displayAddr =
+                  addr.length > 10
+                    ? addr.slice(0, 6) + "..." + addr.slice(-4)
+                    : addr;
+                document.getElementById("wallet-address-display").innerText =
+                  displayAddr;
+                document
+                  .getElementById("wallet-connected-view")
+                  .classList.remove("d-none");
+                document
+                  .getElementById("wallet-not-connected-view")
+                  .classList.add("d-none");
               } else {
-                  document.getElementById("wallet-connected-view").classList.add("d-none");
-                  document.getElementById("wallet-not-connected-view").classList.remove("d-none");
+                document
+                  .getElementById("wallet-connected-view")
+                  .classList.add("d-none");
+                document
+                  .getElementById("wallet-not-connected-view")
+                  .classList.remove("d-none");
               }
 
               checkWithdrawEligibility();
@@ -207,15 +238,25 @@
 
       function checkWithdrawEligibility() {
         const btn = document.getElementById("withdraw-btn");
-        // لازم يكون في محفظة + الرصيد >= 5
-        if (currentUSDT >= 5 && userWalletAddress) {
+        const warning = document.getElementById("referral-warning");
+
+        // ✅ شرط السحب: محفظة + رصيد >= 5 + إحالات >= 3
+        if (currentUSDT >= 5 && userWalletAddress && referralsCount >= 3) {
           btn.disabled = false;
           btn.style.background = "linear-gradient(to bottom, #ffca28, #f57f17)";
           btn.style.boxShadow = "0 5px 0 #b71c1c";
+          warning.classList.add("d-none");
         } else {
           btn.disabled = true;
           btn.style.background = "#999";
           btn.style.boxShadow = "0 5px 0 #444";
+
+          // ✅ نظهر التنبيه لو عدد الإحالات أقل من 3
+          if (referralsCount < 3) {
+            warning.classList.remove("d-none");
+          } else {
+            warning.classList.add("d-none");
+          }
         }
       }
 
@@ -236,7 +277,6 @@
             },
           }).then((result) => {
             if (result.isConfirmed) {
-              // بنبعت الطلب للباك إند
               fetch("/api/request-withdraw/", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -249,12 +289,10 @@
                 .then((res) => res.json())
                 .then((data) => {
                   if (data.message === "Withdraw Request Submitted!") {
-                    // تحديث الرصيد في الشاشة
                     currentUSDT = data.new_usdt_balance;
                     document.getElementById("usdt-balance").innerText =
                       currentUSDT.toFixed(2);
 
-                    // تعطيل الزرار
                     document.getElementById("withdraw-btn").disabled = true;
                     document.getElementById("withdraw-btn").style.background =
                       "#999";
@@ -281,6 +319,5 @@
         }
       }
     </script>
-
   </body>
 </html>

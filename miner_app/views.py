@@ -626,6 +626,8 @@ def request_withdraw(request):
 
         if user.usdt_balance < withdraw_amount:
             return Response({"error": "رصيدك غير كافي"}, status=400)
+        if user.referrals.count() < 3:
+            return Response({"error": "يجب عليك دعوة 3 أصدقاء على الأقل للسحب"}, status=400)
 
         # 1. خصم الرصيد فوراً
         user.usdt_balance -= withdraw_amount

@@ -182,6 +182,26 @@
                 استلام
               </button>
             </div>
+            <div class="milestone-card" id="milestone-20">
+              <div class="milestone-icon">
+                <i class="fa-solid fa-crown"></i>
+              </div>
+              <div class="milestone-info">
+                <span class="milestone-title">ادعُ 20 أصدقاء</span>
+                <span class="milestone-reward">
+                  +200 TAC
+                  <span style="color: #00d2ff; font-weight: 900">
+                    + 2$ USDT
+                  </span>
+                </span>
+              </div>
+              <button
+                class="btn-claim-milestone"
+                onclick="claimMilestone(20, 200)"
+              >
+                استلام
+              </button>
+            </div>
           </div>
         </div>
 
@@ -354,6 +374,7 @@
           { count: 3, reward: 30, id: "milestone-3" },
           { count: 5, reward: 50, id: "milestone-5" },
           { count: 10, reward: 100, id: "milestone-10" },
+          { count: 20, reward: 200, id: "milestone-20" },
         ];
 
         milestones.forEach((ms) => {
@@ -411,8 +432,7 @@
 
               checkMilestones();
 
-              const received =
-                data.reward != null ? data.reward : rewardAmount;
+              const received = data.reward != null ? data.reward : rewardAmount;
               Swal.fire({
                 title: "مبروك!",
                 text: `لقد حصلت على ${received} TAC لدعوتك ${friendCount} أصدقاء.`,
