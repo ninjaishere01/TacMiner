@@ -107,6 +107,19 @@
               <i class="fa-solid fa-bolt text-warning"></i> السحب يصل خلال دقائق
               مباشرة لمحفظتك.
             </p>
+            <p
+              id="referral-condition"
+              class="mb-0 mt-2 d-none"
+              style="color: #ff5252; font-weight: bold; font-size: 12px"
+            >
+              <i class="fa-solid fa-triangle-exclamation"></i>
+              يجب عليك دعوة 3 أصدقاء على الأقل لتتمكن من السحب.
+              <a
+                href="{% url 'referral' %}"
+                style="color: #ff5252; text-decoration: underline"
+                >اذهب لصفحة الإحالة</a
+              >
+            </p>
           </div>
 
           <!-- زرار السحب -->
@@ -118,19 +131,6 @@
           >
             سحب الآن
           </button>
-
-          <!-- التنبيه (شرط الإحالات) -->
-          <div
-            id="referral-warning"
-            class="alert alert-warning mt-3 d-none"
-            role="alert"
-          >
-            <i class="fa-solid fa-triangle-exclamation"></i>
-            يجب عليك دعوة 3 أصدقاء على الأقل لتتمكن من السحب.
-            <a href="{% url 'referral' %}" class="alert-link"
-              >اذهب لصفحة الإحالة</a
-            >
-          </div>
         </div>
       </div>
     </main>
@@ -238,24 +238,24 @@
 
       function checkWithdrawEligibility() {
         const btn = document.getElementById("withdraw-btn");
-        const warning = document.getElementById("referral-warning");
+        const condition = document.getElementById("referral-condition");
 
         // ✅ شرط السحب: محفظة + رصيد >= 5 + إحالات >= 3
         if (currentUSDT >= 5 && userWalletAddress && referralsCount >= 3) {
           btn.disabled = false;
           btn.style.background = "linear-gradient(to bottom, #ffca28, #f57f17)";
           btn.style.boxShadow = "0 5px 0 #b71c1c";
-          warning.classList.add("d-none");
+          condition.classList.add("d-none");
         } else {
           btn.disabled = true;
           btn.style.background = "#999";
           btn.style.boxShadow = "0 5px 0 #444";
 
-          // ✅ نظهر التنبيه لو عدد الإحالات أقل من 3
+          // ✅ نظهر شرط الإحالات لو أقل من 3
           if (referralsCount < 3) {
-            warning.classList.remove("d-none");
+            condition.classList.remove("d-none");
           } else {
-            warning.classList.add("d-none");
+            condition.classList.add("d-none");
           }
         }
       }

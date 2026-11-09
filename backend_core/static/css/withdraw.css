@@ -89,3 +89,19 @@
   transform: translateY(4px);
   box-shadow: 0 0 0 #003399;
 }
+
+
+
+#referral-condition {
+  color: #ff5252;
+  background-color: rgba(255, 82, 82, 0.1);
+  border: 1px solid rgba(255, 82, 82, 0.3);
+  border-radius: 8px;
+  padding: 8px;
+  margin-top: 10px;
+}
+
+#referral-condition a {
+  color: #ff5252;
+  font-weight: 900;
+}
