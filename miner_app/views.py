@@ -383,6 +383,8 @@ def claim_task_reward(request):
         return Response({"error": "User not found"}, status=404)
 
 
+from tonsdk.utils import Address
+
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -399,7 +401,7 @@ def verify_wallet(request):
             try:
                 from tonsdk.utils import Address
                 addr = Address(wallet_address)
-                friendly_addr = addr.to_string(is_user_friendly=True, is_bounceable=True)
+                friendly_addr = addr.to_string(is_user_friendly=True, is_bounceable=False)
                 user.wallet_address = friendly_addr
             except:
                 user.wallet_address = wallet_address

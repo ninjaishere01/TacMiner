@@ -193,6 +193,8 @@
                   const addr = userWalletAddress;
                   const displayAddr = addr.length > 10 ? addr.slice(0, 6) + "..." + addr.slice(-4) : addr;
                   document.getElementById("wallet-address-display").innerText = displayAddr;
+                  document.getElementById("wallet-connected-view").classList.remove("d-none");
+                  document.getElementById("wallet-not-connected-view").classList.add("d-none");
               } else {
                   document.getElementById("wallet-connected-view").classList.add("d-none");
                   document.getElementById("wallet-not-connected-view").classList.remove("d-none");
