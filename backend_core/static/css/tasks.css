@@ -155,3 +155,47 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background-color: rgba(255, 202, 40, 0.8);
 }
+
+/* تحدي الـ 30 يوم */
+.streak-container {
+  background: rgba(26, 30, 46, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.streak-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr); /* 10 أعمدة */
+  gap: 4px;
+}
+
+.streak-day {
+  aspect-ratio: 1; /* عشان يبقوا مربعات */
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 9px;
+  color: #6c7a9a;
+  font-weight: bold;
+}
+
+/* اليوم اللي اتفتح */
+.streak-day.done {
+  background: linear-gradient(to bottom, #ffca28, #f57f17);
+  color: #3e2723;
+  border: 1px solid #e65100;
+  box-shadow: 0 0 5px rgba(255, 202, 40, 0.4);
+}
+
+/* اليوم الحالي */
+.streak-day.current {
+  background: rgba(0, 210, 255, 0.2);
+  color: #00d2ff;
+  border: 1px solid #00d2ff;
+  box-shadow: 0 0 5px rgba(0, 210, 255, 0.4);
+}

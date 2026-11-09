@@ -228,6 +228,7 @@ def login_or_register(request):
             "completed_tasks": [task.task_name for task in user.tasks.all()],
             "offline_earnings": offline_earnings,
             "boost_cooldown_left": boost_cooldown_left,
+            "daily_streak": user.daily_streak,
         }
     })
 

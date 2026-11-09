@@ -35,6 +35,10 @@ class User(models.Model):
     last_activity = models.DateTimeField(auto_now=True, verbose_name="آخر نشاط")
     last_collected_at = models.DateTimeField( verbose_name="آخر مرة تم تحديث الرصيد")
 
+        # نظام تسجيل الدخول اليومي
+    daily_streak = models.IntegerField(default=0, verbose_name="عدد أيام الدخول المتتالية")
+    last_daily_check = models.DateField(null=True, blank=True, verbose_name="تاريخ آخر تسجيل دخول")
+
     def __str__(self):
         return f"{self.username or self.telegram_id}"
 
