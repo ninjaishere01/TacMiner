@@ -1,3 +1,9 @@
+// منع قائمة الضغط المطول على كل الصفحة
+document.addEventListener('contextmenu', function(e) {
+    e.preventDefault();
+});
+
+
 // قراءة بيانات تيليجرام الحقيقية من WebApp
 const telegramWebApp = window.Telegram && window.Telegram.WebApp;
 if (telegramWebApp && typeof telegramWebApp.ready === "function") {
