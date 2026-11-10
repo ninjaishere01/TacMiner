@@ -5,21 +5,8 @@ function updateBalanceUI(balance) {
   if (!Number.isFinite(numeric)) return;
 
   const formatted = numeric.toLocaleString("en-US");
-  document
-    .querySelectorAll("#global-balance, #profile-balance")
-    .forEach((el) => {
-      el.innerText = formatted;
-    });
-}
-
-// (اختياري) إظهار رسالة بالأرباح اللي كسبها وهو بعيد
-const offlineEarnings = Number(data.user.offline_earnings) || 0;
-if (offlineEarnings > 0 && typeof Swal !== "undefined") {
-  Swal.fire({
-    title: "أهلاً بعودتك! 🎉",
-    text: `لقد ربحت ${offlineEarnings.toFixed(4)} TAC أثناء غيابك.`,
-    icon: "success",
-    confirmButtonText: "رائع!",
+  document.querySelectorAll("#global-balance, #profile-balance").forEach((el) => {
+    el.innerText = formatted;
   });
 }
 
@@ -37,10 +24,7 @@ function renderHomeGrid() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          initData:
-            window.Telegram && window.Telegram.WebApp
-              ? window.Telegram.WebApp.initData
-              : "",
+          initData: window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.initData : "",
           username: username,
           referral_id: referralId,
         }),
@@ -90,10 +74,7 @@ function updateUpgradeUI() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          initData:
-            window.Telegram && window.Telegram.WebApp
-              ? window.Telegram.WebApp.initData
-              : "",
+          initData: window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.initData : "",
           referral_id: referralId,
           username: username,
         }),
@@ -175,10 +156,7 @@ function collectGold() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        initData:
-          window.Telegram && window.Telegram.WebApp
-            ? window.Telegram.WebApp.initData
-            : "",
+        initData: window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.initData : "",
         referral_id: referralId,
       }),
     })
@@ -186,9 +164,7 @@ function collectGold() {
       .then((data) => {
         if (data.message === "Collected!") {
           const collected = Number(data.collected);
-          const collectedAmount = Number.isFinite(collected)
-            ? collected
-            : storage;
+          const collectedAmount = Number.isFinite(collected) ? collected : storage;
           localStorage.setItem("mineStorage", 0);
           document.getElementById("current-gold").innerText = "0.0000";
 
@@ -243,8 +219,7 @@ function applyProduction(production) {
   const statMonthEl = document.getElementById("stat-month");
   if (statHourEl) statHourEl.innerText = Number(production.per_hour).toFixed(2);
   if (statDayEl) statDayEl.innerText = Number(production.per_day).toFixed(2);
-  if (statMonthEl)
-    statMonthEl.innerText = Number(production.per_month).toFixed(2);
+  if (statMonthEl) statMonthEl.innerText = Number(production.per_month).toFixed(2);
 }
 
 function updateHourBoostCard(user) {
@@ -254,10 +229,7 @@ function updateHourBoostCard(user) {
 
   if (multiplier > 1.0) {
     if (badge) badge.classList.remove("d-none");
-    if (
-      typeof startHourBoostCountdown === "function" &&
-      Number(user.time_left) > 0
-    ) {
+    if (typeof startHourBoostCountdown === "function" && Number(user.time_left) > 0) {
       startHourBoostCountdown(user.time_left);
     } else if (timer) {
       timer.classList.remove("d-none");
@@ -282,15 +254,13 @@ function simulateMining() {
     let storage = parseFloat(localStorage.getItem("mineStorage")) || 0;
     let perSecond = window.productionPerSecond || 0;
 
-    // شيلنا شرط الـ 500 عشان يعدن على طول
-    if (perSecond > 0) {
+    if (storage < 500 && perSecond > 0) {
       storage += perSecond;
       localStorage.setItem("mineStorage", storage);
       storageEl.innerText = storage.toFixed(4);
     }
   }
 }
-
 // 8. لوحة المتصدرين من الـ API
 function loadLeaderboard() {
   fetch("/api/leaderboard/")
@@ -345,10 +315,7 @@ document.addEventListener("DOMContentLoaded", () => {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      initData:
-        window.Telegram && window.Telegram.WebApp
-          ? window.Telegram.WebApp.initData
-          : "",
+      initData: window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.initData : "",
       username: username,
       referral_id: referralId,
     }),
@@ -358,25 +325,12 @@ document.addEventListener("DOMContentLoaded", () => {
       if (data.message === "Success") {
         window.adsActivated = Number(data.user.ads_watched_today) >= 3;
 
-        // ✅ 1. تحديث الرصيد الحقيقي من السيرفر (اللي فيه أرباح الأوفلاين)
         updateBalanceUI(data.user.balance);
 
-        // ✅ 2. عرض الرصيد في كارت الـ collect
-        const goldEl = document.getElementById("current-gold");
-        if (goldEl) {
-          goldEl.innerText = data.user.balance.toFixed(4);
-        }
-
-        // ✅ 3. تحديث الـ localStorage بالرصيد الحقيقي
-        localStorage.setItem("mineStorage", data.user.balance);
-
         const displayName = data.user.username || username;
-        document
-          .querySelectorAll(".my-user, #profile-username")
-          .forEach((el) => {
-            if (displayName && displayName !== "new user")
-              el.textContent = displayName;
-          });
+        document.querySelectorAll(".my-user, #profile-username").forEach((el) => {
+          if (displayName && displayName !== "new user") el.textContent = displayName;
+        });
 
         let totalLevels = 0;
         for (let workerId in data.user.workers) {
@@ -405,6 +359,11 @@ document.addEventListener("DOMContentLoaded", () => {
           if (miningInterval) clearInterval(miningInterval);
           miningInterval = setInterval(simulateMining, 1000);
         }
+
+        const offlineEarnings = Number(data.user.offline_earnings) || 0;
+        localStorage.setItem("mineStorage", offlineEarnings);
+        const goldEl = document.getElementById("current-gold");
+        if (goldEl) goldEl.innerText = offlineEarnings.toFixed(4);
       }
     })
     .catch((err) => console.error("API Error:", err));

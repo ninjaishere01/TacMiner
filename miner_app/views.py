@@ -118,15 +118,16 @@ def calculate_user_production(user):
     now = timezone.now()
     multiplier = 1.0
     
-    # التعديل هنا: بنعتمد على boost_activated_at عشان نحسب الساعة
-    if user.boost_multiplier > 1.0 and user.boost_activated_at:
-        boost_end_time = user.boost_activated_at + timedelta(hours=1)
-        if now < boost_end_time:
-            multiplier = float(user.boost_multiplier)
+    if user.last_boost_time:
+        # لو عدت ساعة من وقت تفعيل البوست، بنلغي البوست
+        if now > user.last_boost_time + timedelta(hours=1):
+            multiplier = 1.0
+            # نرجع السرعة لطبيعتها في الداتابيز
+            if user.boost_multiplier != 1.0:
+                user.boost_multiplier = 1.0
+                user.save()
         else:
-            # لو الساعة خلصت، نرجع السرعة الطبيعية في الداتابيز
-            user.boost_multiplier = Decimal('1.00')
-            user.save()
+            multiplier = float(user.boost_multiplier)
             
     total_per_hour *= multiplier
     
@@ -135,6 +136,7 @@ def calculate_user_production(user):
         "per_day": total_per_hour * 24,
         "per_month": total_per_hour * 24 * 30
     }
+
 
 
 
@@ -208,30 +210,24 @@ def login_or_register(request):
         user_workers[uw.worker.id] = uw.level
 
     # 7. بنحسب الوقت المتبقي للمضاعفة (ساعة واحدة)
+        # 7. بنحسب الوقت المتبقي للمضاعفة (ساعة) + الاستراحة (8 ساعات)
     time_left = 0
-    boost_cooldown_left = 0
-    now = timezone.now()
-
-    # لو البوست شغال حالياً
-    if user.boost_multiplier > 1.0 and user.boost_activated_at:
-        boost_end_time = user.boost_activated_at + timedelta(hours=1)
+    boost_cooldown_left = 0  # <-- جديد
+    if user.last_boost_time:
+        boost_end_time = user.last_boost_time + timedelta(hours=1)
+        now = timezone.now()
         if now < boost_end_time:
+            # البوست شغال (ساعة)
             time_left = int((boost_end_time - now).total_seconds())
         else:
-            # الساعة خلصت، بنرجع السرعة الطبيعية
-            user.boost_multiplier = Decimal('1.00')
-            user.save()
-
-    # لو العداد 5 ومستني الـ 8 ساعات
-    if user.boost_ads_watched >= 5 and user.last_boost_time:
-        cooldown_end = user.last_boost_time + timedelta(hours=8)
-        if now < cooldown_end:
-            boost_cooldown_left = int((cooldown_end - now).total_seconds())
-        else:
-            # خلصت الـ 8 ساعات، بنصفر العداد
-            user.boost_ads_watched = 0
-            user.last_boost_time = None
-            user.save()
+            # البوست خلص، بنشوف لو في استراحة 8 ساعات
+            if user.boost_multiplier != 1.0:
+                user.boost_multiplier = 1.0
+                user.save()
+            
+            cooldown_end = user.last_boost_time + timedelta(hours=8)
+            if now < cooldown_end:
+                boost_cooldown_left = int((cooldown_end - now).total_seconds())
 
     # 8. بنحسب الإنتاج الحالي للعمال
     production = calculate_user_production(user)
@@ -552,59 +548,57 @@ def watch_ad(request):
                 return Response({"error": "لقد أكملت إعلانات التفعيل اليوم"}, status=400)
 
         # --- 2. إعلانات المضاعفة (Boost) ---
+                # --- 2. إعلانات المضاعفة (Boost) ---
         elif ad_type == 'boost':
             now = timezone.now()
             
-            # 1. لو البوست شغال حالياً
-            if user.boost_multiplier > 1.0 and user.boost_activated_at:
-                boost_end_time = user.boost_activated_at + timedelta(hours=1)
+            # 1. لو البوست شغال حالياً (يعني الساعة لسه مخلصتش)
+            if user.last_boost_time and user.boost_multiplier > 1.0:
+                boost_end_time = user.last_boost_time + timedelta(hours=1)
                 if now < boost_end_time:
-                    time_left = int((boost_end_time - now).total_seconds())
-                    return Response({"error": f"البوست شغال بالفعل. متبقي {time_left} ثانية."}, status=400)
+                    return Response({"error": "البوست شغال بالفعل. استنى لما يخلص."}, status=400)
                 else:
-                    user.boost_multiplier = Decimal('1.00')
+                    # لو خلصت الساعة، بنلغي البوست ونرجع السرعة الطبيعية
+                    user.boost_multiplier = 1.0
                     user.save()
 
-            # 2. لو خلص 5 إعلانات ومستني 8 ساعات
+            # بنشوف وقت بداية الدورة القديمة (لو موجود)
             if user.boost_ads_watched >= 5:
+                # معناها إنه خلص الـ 5 إعلانات، ومحتاج يستنى 8 ساعات من وقت بداية الدورة
                 if user.last_boost_time:
+                    # بنحسب وقت انتهاء الاستراحة (8 ساعات من بداية الدورة)
                     cooldown_end = user.last_boost_time + timedelta(hours=8)
                     if now < cooldown_end:
-                        time_left = int((cooldown_end - now).total_seconds())
-                        hours_left = time_left // 3600
-                        minutes_left = (time_left % 3600) // 60
-                        return Response({"error": f"لازم تستنى {hours_left} ساعة و {minutes_left} دقيقة."}, status=400)
+                        time_left_cooldown = int((cooldown_end - now).total_seconds())
+                        return Response({"error": f"لازم تستنى {time_left_cooldown} ثانية."}, status=400)
                     else:
+                        # خلصت الـ 8 ساعات، بنصفر العداد عشان يبدأ دورة جديدة
                         user.boost_ads_watched = 0
-                        user.last_boost_time = None
+                        user.last_boost_time = now
                         user.save()
 
-            # 3. بنزود العداد
+            # 3. لو العداد أقل من 5، بنزوده
             if user.boost_ads_watched < 5:
-                if user.boost_ads_watched == 0:
-                    user.last_boost_time = now
-                
                 user.boost_ads_watched += 1
                 user.save()
-                
-                if user.boost_ads_watched < 5:
-                    return Response({
-                        "message": "Boost Ad Watched!",
-                        "watched_count": user.boost_ads_watched
-                    })
-                else:
-                    user.boost_multiplier = Decimal('2.00')
-                    user.boost_activated_at = now
-                    user.save()
-                    return Response({
-                        "message": "Boost Activated!",
-                        "boost_multiplier": float(user.boost_multiplier),
-                        "time_left": 3600
-                    })
+                return Response({
+                    "message": "Boost Ad Watched!",
+                    "watched_count": user.boost_ads_watched
+                })
+            else:
+                # 4. لو وصل 5، بنديله المضاعف
+                user.boost_multiplier = Decimal('2.00')
+                user.last_boost_time = now
+                user.save()
+                return Response({
+                    "message": "Boost Activated!",
+                    "boost_multiplier": float(user.boost_multiplier)
+                })
 
         return Response({"error": "Invalid ad type"}, status=400)
     except User.DoesNotExist:
         return Response({"error": "User not found"}, status=404)
+
 
 
 @api_view(['POST'])
