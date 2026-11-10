@@ -22,6 +22,8 @@ class User(models.Model):
     
     boost_ads_watched = models.IntegerField(default=0, verbose_name="إعلانات المضاعفة")
     last_boost_time = models.DateTimeField(null=True, blank=True, verbose_name="وقت آخر مضاعفة")
+     # 👇 ضيف الحقل ده هنا
+    boost_activated_at = models.DateTimeField(null=True, blank=True, verbose_name="وقت تفعيل المضاعفة")
     boost_multiplier = models.DecimalField(max_digits=5, decimal_places=2, default=1.00, verbose_name="مضاعف السرعة")
     
     # المحفظة

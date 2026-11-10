@@ -42,7 +42,12 @@
     >
       <div class="d-flex align-items-center gap-2">
         <div class="border-info">
-          <img src="{% static 'logo-brand/one-logo.png' %}" alt="" width="50" oncontextmenu="return false;" />
+          <img
+            src="{% static 'logo-brand/one-logo.png' %}"
+            alt=""
+            width="50"
+            oncontextmenu="return false;"
+          />
         </div>
       </div>
       <div class="d-flex gap-2">
@@ -50,7 +55,12 @@
           class="icon-btn rounded-pill d-flex justify-content-center align-items-center gap-2"
         >
           <h6 class="mb-0 text-warning fw-bold" id="global-balance">0.00</h6>
-          <img src="{% static 'images/tac-coin.png' %}" alt="" width="25" oncontextmenu="return false;" />
+          <img
+            src="{% static 'images/tac-coin.png' %}"
+            alt=""
+            width="25"
+            oncontextmenu="return false;"
+          />
         </div>
       </div>
     </header>
@@ -133,7 +143,7 @@
           </button>
         </div>
 
-        <!-- مهمة مضاعفة السرعة (هنا هنحط العداد) -->
+        <!-- مهمة مضاعفة السرعة -->
         <div class="task-card" id="boost-card-container">
           <div class="task-icon-box">
             <i class="fa-solid fa-bolt text-info"></i>
@@ -292,19 +302,31 @@
     <!-- الشريط السفلي -->
     <nav class="bottom-nav fixed-bottom" oncontextmenu="return false;">
       <div class="d-flex justify-content-around align-items-end pb-2 pt-1">
-        <a href="{% url 'index' %}" class="nav-item text-center" oncontextmenu="return false;">
+        <a
+          href="{% url 'index' %}"
+          class="nav-item text-center"
+          oncontextmenu="return false;"
+        >
           <i class="fa-solid fa-hammer fs-5"></i><br /><small
             style="font-size: 10px"
             >الرئيسية</small
           >
         </a>
-        <a href="{% url 'upgrade' %}" class="nav-item text-center" oncontextmenu="return false;">
+        <a
+          href="{% url 'upgrade' %}"
+          class="nav-item text-center"
+          oncontextmenu="return false;"
+        >
           <i class="fa-solid fa-arrow-up-right-dots fs-5"></i><br /><small
             style="font-size: 10px"
             >تطوير</small
           >
         </a>
-        <a href="{% url 'tasks' %}" class="nav-item center-btn text-center" oncontextmenu="return false;">
+        <a
+          href="{% url 'tasks' %}"
+          class="nav-item center-btn text-center"
+          oncontextmenu="return false;"
+        >
           <div
             class="circle-glow d-flex justify-content-center align-items-center"
           >
@@ -314,13 +336,21 @@
             >المهام</small
           >
         </a>
-        <a href="{% url 'referral' %}" class="nav-item text-center" oncontextmenu="return false;">
+        <a
+          href="{% url 'referral' %}"
+          class="nav-item text-center"
+          oncontextmenu="return false;"
+        >
           <i class="fa-solid fa-user-group fs-5"></i><br /><small
             style="font-size: 10px"
             >الإحالة</small
           >
         </a>
-        <a href="{% url 'profile' %}" class="nav-item text-center" oncontextmenu="return false;">
+        <a
+          href="{% url 'profile' %}"
+          class="nav-item text-center"
+          oncontextmenu="return false;"
+        >
           <i class="fa-solid fa-user fs-5"></i><br /><small
             style="font-size: 10px"
             >حسابي</small
@@ -492,9 +522,7 @@
               if (boostBtn) {
                 boostBtn.innerText = "شاهد";
                 if (watchedCount < 5) {
-                  boostBtn.disabled = true;
-                } else if (watchedCount === 5) {
-                  boostBtn.disabled = false;
+                  boostBtn.disabled = false; // نخليه يقدر يكمل
                 }
               }
 
@@ -507,14 +535,22 @@
               });
             } else if (data.message === "Boost Activated!") {
               Swal.fire({
-                title: "مضاعف!",
+                title: "مضاعف! 🔥",
                 text: "تم تفعيل سرعة x2 لمدة ساعة!",
                 icon: "success",
               });
 
+              // تحديث العداد لـ 5 عشان يبان مكتمل
+              const boostWatchedEl = document.getElementById("boost-watched");
+              const boostProgressEl = document.getElementById("boost-progress");
+              if (boostWatchedEl) boostWatchedEl.innerText = "5";
+              if (boostProgressEl) boostProgressEl.style.width = "100%";
+
               let boostBtn = document.getElementById("boost-btn");
               if (boostBtn) boostBtn.style.display = "none";
-              startBoostTimer(3600); // نبدأ عداد الساعة
+
+              // نبدأ عداد الساعة
+              startBoostTimer(3600);
             } else {
               Swal.fire({
                 title: "خطأ",
@@ -604,9 +640,11 @@
           if (timeLeft <= 0) {
             clearInterval(timerInterval);
             timerElement.remove();
-            boostBtn.style.display = "block";
-            boostBtn.innerText = "شاهد";
-            boostBtn.disabled = true;
+            if (boostBtn) {
+              boostBtn.style.display = "block";
+              boostBtn.innerText = "شاهد";
+              boostBtn.disabled = false; // خلصت الـ 8 ساعات يرجع يشتغل
+            }
             document.getElementById("boost-watched").innerText = "0";
             document.getElementById("boost-progress").style.width = "0%";
           } else {
@@ -789,10 +827,13 @@
                 startBoostCooldownTimer(user.boost_cooldown_left);
               } else {
                 // مفيش بوست ولا استراحة
-                const boostCountForBtn = parseInt(user.boost_ads_watched, 10) || 0;
+                const boostCountForBtn =
+                  parseInt(user.boost_ads_watched, 10) || 0;
                 boostBtn.style.display = "block";
                 boostBtn.innerText = "شاهد";
-                boostBtn.disabled = boostCountForBtn < 5;
+
+                // الزرار يتقفل لو العداد 5 (لحد ما يدخل يفعله أو الوقت يخلص)
+                boostBtn.disabled = boostCountForBtn >= 5;
               }
             }
           })
