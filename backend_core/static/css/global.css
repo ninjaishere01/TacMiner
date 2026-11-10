@@ -306,15 +306,17 @@ main > div {
   box-shadow: 0 4px 0 #333 !important;
 }
 
-
-
-
-
 /* تأثير الضغط على الأزرار */
-button, .btn, .action-btn, .worker-slot {
+button,
+.btn,
+.action-btn,
+.worker-slot {
   transition: transform 0.1s ease;
 }
-button:active, .btn:active, .action-btn:active, .worker-slot:active {
+button:active,
+.btn:active,
+.action-btn:active,
+.worker-slot:active {
   transform: scale(0.95);
 }
 /* حركة دخول الصفحة */
@@ -329,10 +331,12 @@ button:active, .btn:active, .action-btn:active, .worker-slot:active {
   }
 }
 
-main, .mine-container {
+main,
+.mine-container {
   animation: fadeInUp 0.5s ease-out forwards;
 }
 
+/* منع قائمة الضغط المطول على الصور */
 img {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
@@ -341,14 +345,12 @@ img {
   -ms-user-select: none;
   user-select: none;
   pointer-events: none;
+  -webkit-user-drag: none;
 }
 
-/* منع قائمة الضغط المطول على الصور */
-img {
+.bottom-nav,
+.bottom-nav * {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
   user-select: none;
-  -webkit-user-drag: none;
 }
