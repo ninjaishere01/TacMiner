@@ -239,156 +239,47 @@ function simulateMining() {
     }
   }
 }
-// 8. دالة رسم لوحة المتصدرين
-let topPlayers = [
-  {
-    rank: 1,
-    name: "CryptoKing",
-    score: 1250000,
-    class: "top-1",
-    icon: "fa-crown text-warning",
-  },
-  {
-    rank: 2,
-    name: "Luna_Miner",
-    score: 980500,
-    class: "top-2",
-    icon: "fa-user-astronaut text-light",
-  },
-  {
-    rank: 3,
-    name: "ShadowStrike",
-    score: 850000,
-    class: "top-3",
-    icon: "fa-user-ninja text-danger",
-  },
-  {
-    rank: 4,
-    name: "NeonViper",
-    score: 720000,
-    class: "normal",
-    icon: "fa-user text-info",
-  },
-  {
-    rank: 5,
-    name: "GhostProtocol",
-    score: 680000,
-    class: "normal",
-    icon: "fa-user text-info",
-  },
-  {
-    rank: 6,
-    name: "Titanfall",
-    score: 610000,
-    class: "normal",
-    icon: "fa-user text-info",
-  },
-  {
-    rank: 7,
-    name: "VortexX",
-    score: 550000,
-    class: "normal",
-    icon: "fa-user text-info",
-  },
-  {
-    rank: 8,
-    name: "CyberWolf",
-    score: 490000,
-    class: "normal",
-    icon: "fa-user text-info",
-  },
-  {
-    rank: 9,
-    name: "Rogue_AI",
-    score: 420000,
-    class: "normal",
-    icon: "fa-user text-info",
-  },
-  {
-    rank: 10,
-    name: "PixelGhost",
-    score: 350000,
-    class: "normal",
-    icon: "fa-user text-info",
-  },
-];
+// 8. لوحة المتصدرين من الـ API
+function loadLeaderboard() {
+  fetch("/api/leaderboard/")
+    .then((res) => res.json())
+    .then((data) => {
+      const container = document.getElementById("leaderboard-list");
+      if (!container) return;
+      let html = "";
+      data.forEach((player, index) => {
+        const rank = index + 1;
+        let itemClass = "leader-item";
+        let badgeColor = "bg-secondary text-white";
+        if (rank === 1) {
+          itemClass += " top-1";
+          badgeColor = "bg-warning text-dark";
+        } else if (rank === 2) {
+          itemClass += " top-2";
+          badgeColor = "bg-light text-dark";
+        } else if (rank === 3) {
+          itemClass += " top-3";
+          badgeColor = "bg-danger text-white";
+        }
 
-function renderLeaderboard() {
-  const container = document.getElementById("leaderboard-list");
-  if (!container) return;
-
-  let html = "";
-
-  topPlayers.forEach((player) => {
-    let itemClass =
-      player.class === "normal" ? "leader-item" : `leader-item ${player.class}`;
-
-    let badgeColor = "";
-    if (player.rank === 1) badgeColor = "bg-warning text-dark";
-    else if (player.rank === 2) badgeColor = "bg-light text-dark";
-    else if (player.rank === 3) badgeColor = "bg-danger text-white";
-    else badgeColor = "bg-secondary text-white";
-
-    html += `
-      <div class="${itemClass}" style="padding: 6px 10px; margin-bottom: 5px;">
-        <div class="rank-badge ${badgeColor}" style="width: 22px; height: 22px; font-size: 11px; margin-right: 8px;">${player.rank}</div>
-        <div class="leader-avatar" style="width: 28px; height: 28px; margin-right: 8px; font-size: 12px;">
-            <i class="fa-solid ${player.icon}"></i>
-        </div>
-        <div class="leader-info">
-          <span class="leader-name" style="font-size: 12px;">${player.name}</span>
-        </div>
-        <div class="leader-score" style="font-size: 11px;">
-            <i class="fa-solid fa-coins text-warning"></i> ${player.score.toLocaleString("en-US")}
-        </div>
-      </div>
-    `;
-  });
-
-  // كارت اليوزر الحالي
-  html += `
-    <div class="leader-item my-rank" style="margin-top: 10px; border: 2px solid var(--cyan); padding: 8px 10px;">
-      <div class="leader-avatar" style="width: 28px; height: 28px; margin-right: 8px; font-size: 12px;">
-      </div>
-      <div class="leader-score" style="font-size: 11px;">
-      ----------------------------------------
-      </div>
-    </div>
-  `;
-
-  container.innerHTML = html;
+        html += `
+                    <div class="${itemClass}" style="padding: 6px 10px; margin-bottom: 5px;">
+                        <div class="rank-badge ${badgeColor}" style="width: 22px; height: 22px; font-size: 11px; margin-right: 8px;">${rank}</div>
+                        <div class="leader-avatar" style="width: 28px; height: 28px; margin-right: 8px; font-size: 12px;">
+                            <i class="fa-solid fa-user text-info"></i>
+                        </div>
+                        <div class="leader-info">
+                            <span class="leader-name" style="font-size: 12px;">${player.username}</span>
+                        </div>
+                        <div class="leader-score" style="font-size: 11px;">
+                            <i class="fa-solid fa-coins text-warning"></i> ${player.balance.toLocaleString("en-US")}
+                        </div>
+                    </div>
+                `;
+      });
+      container.innerHTML = html;
+    });
 }
-
-// دالة تحديث الأرباح عشوائياً كل 30 ثانية
-function updateLeaderboardScores() {
-  topPlayers.forEach((player) => {
-    let randomIncrease = Math.floor(Math.random() * 200) + 100;
-    player.score += randomIncrease;
-  });
-
-  topPlayers.sort((a, b) => b.score - a.score);
-
-  topPlayers.forEach((player, index) => {
-    player.rank = index + 1;
-    if (player.rank === 1) {
-      player.class = "top-1";
-      player.icon = "fa-crown text-warning";
-    } else if (player.rank === 2) {
-      player.class = "top-2";
-      player.icon = "fa-user-astronaut text-light";
-    } else if (player.rank === 3) {
-      player.class = "top-3";
-      player.icon = "fa-user-ninja text-danger";
-    } else {
-      player.class = "normal";
-      player.icon = "fa-user text-info";
-    }
-  });
-
-  renderLeaderboard();
-}
-
-setInterval(updateLeaderboardScores, 30000);
 
 // 9. التشغيل عند تحميل الصفحة
 document.addEventListener("DOMContentLoaded", () => {
@@ -437,7 +328,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         renderHomeGrid();
         updateUpgradeUI();
-        renderLeaderboard();
+        loadLeaderboard();
 
         applyProduction(data.user.production);
 

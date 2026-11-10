@@ -41,6 +41,7 @@ urlpatterns = [
     path('api/withdraw-history/', views.get_withdraw_history, name='api_withdraw_history'),
 
     path('api/daily-check-in/', views.daily_check_in, name='daily_check_in'),
+    path('api/leaderboard/', views.get_leaderboard, name='get_leaderboard'),
 
 ]
 

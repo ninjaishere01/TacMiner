@@ -1015,6 +1015,19 @@ def daily_check_in(request):
 
 
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_leaderboard(request):
+    top_users = User.objects.order_by('-balance')[:10]
+    data = []
+    for u in top_users:
+        data.append({
+            "username": u.username or "Unknown",
+            "balance": float(u.balance)
+        })
+    return Response(data)
+
+
 def tasks(request):
     channels = (
         settings.TELEGRAM_TASK_CHANNEL_1,
