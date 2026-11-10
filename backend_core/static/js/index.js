@@ -224,6 +224,8 @@ function applyProduction(production) {
 window.applyProduction = applyProduction;
 
 function simulateMining() {
+  if (window.adsActivated !== true) return;
+
   let storageEl = document.getElementById("current-gold");
   if (storageEl) {
     let storage = parseFloat(localStorage.getItem("mineStorage")) || 0;
@@ -407,6 +409,8 @@ document.addEventListener("DOMContentLoaded", () => {
     .then((res) => res.json())
     .then((data) => {
       if (data.message === "Success") {
+        window.adsActivated = Number(data.user.ads_watched_today) >= 3;
+
         updateBalanceUI(data.user.balance);
 
         const displayName = data.user.username || username;

@@ -74,8 +74,7 @@
             <!-- المربعات هتترسم هنا بالجافاسكريبت -->
           </div>
           <p class="text-muted text-center mt-2 mb-0" style="font-size: 10px">
-            سجل دخولك كل يوم، وفي اليوم الـ 30 هتاخد
-            <strong>عامل Dragon</strong> (قيمته 250 TAC) مجاناً!
+            سجل دخولك كل يوم، وفي اليوم الـ 30 هتاخد عامل Dragon (قيمته 250 TAC) مجاناً!
           </p>
           <button
             class="btn btn-warning w-100 mt-2 fw-bold"
@@ -427,6 +426,7 @@
                 data.new_balance.toLocaleString("en-US");
 
               if (watchedCount >= 3) {
+                window.adsActivated = true;
                 document.getElementById("activation-btn").disabled = true;
                 document.getElementById("activation-btn").innerText = "اكتمل";
               }
@@ -508,6 +508,20 @@
       // ==========================================
       // 4. دالة العداد التنازلي للبوست (ساعة)
       // ==========================================
+      function placeBoostTimer(timerElement, boostBtn) {
+        timerElement.style.fontWeight = "bold";
+        timerElement.style.color = "var(--wood-text-dark)";
+        timerElement.style.fontSize = "12px";
+        timerElement.style.lineHeight = "1.35";
+        timerElement.style.textAlign = "center";
+        timerElement.style.flexShrink = "0";
+        timerElement.style.width = "118px";
+        timerElement.style.marginLeft = "8px";
+        if (timerElement.parentElement !== boostBtn.parentElement) {
+          boostBtn.insertAdjacentElement("afterend", timerElement);
+        }
+      }
+
       function startBoostTimer(secondsLeft) {
         const boostBtn = document.getElementById("boost-btn");
         if (!boostBtn) return;
@@ -518,18 +532,20 @@
         if (!timerElement) {
           timerElement = document.createElement("div");
           timerElement.id = "boost-timer";
-          timerElement.style.fontWeight = "bold";
-          timerElement.style.color = "var(--wood-text-dark)";
-          timerElement.style.fontSize = "13px";
-          timerElement.style.marginTop = "5px";
-          document
-            .getElementById("boost-card-container")
-            .appendChild(timerElement);
         }
+        placeBoostTimer(timerElement, boostBtn);
 
         let timeLeft = secondsLeft;
 
+        const renderBoostCountdown = () => {
+          let minutes = Math.floor(timeLeft / 60);
+          let seconds = timeLeft % 60;
+          timerElement.innerText = `⚡ سرعة التعدين x2 حتى: ${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+        };
+        renderBoostCountdown();
+
         let timerInterval = setInterval(() => {
+          timeLeft--;
           if (timeLeft <= 0) {
             clearInterval(timerInterval);
             timerElement.remove();
@@ -539,10 +555,7 @@
             document.getElementById("boost-watched").innerText = "0";
             document.getElementById("boost-progress").style.width = "0%";
           } else {
-            let minutes = Math.floor((timeLeft % 3600) / 60);
-            let seconds = timeLeft % 60;
-            timerElement.innerText = `⚡ سرعة التعدين x2 حتى: ${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-            timeLeft--;
+            renderBoostCountdown();
           }
         }, 1000);
       }
@@ -557,13 +570,10 @@
         if (!timerElement) {
           timerElement = document.createElement("div");
           timerElement.id = "boost-timer";
-          timerElement.style.fontWeight = "bold";
-          timerElement.style.color = "var(--wood-text-dark)";
-          timerElement.style.fontSize = "13px";
-          timerElement.style.marginTop = "5px";
-          document
-            .getElementById("boost-card-container")
-            .appendChild(timerElement);
+        }
+        if (boostBtn) {
+          boostBtn.style.display = "none";
+          placeBoostTimer(timerElement, boostBtn);
         }
 
         let timeLeft = secondsLeft;

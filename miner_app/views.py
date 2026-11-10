@@ -217,7 +217,7 @@ def login_or_register(request):
             "is_partner": user.is_partner,
             "is_wallet_verified": user.is_wallet_verified,
             "wallet_address": user.wallet_address,
-            "ads_watched_today": user.ads_watched_today,
+            "ads_watched_today": user.ads_watched_today if user.last_activation_date == timezone.now().date() else 0,
             "boost_ads_watched": user.boost_ads_watched,
             "last_boost_time": user.last_boost_time.isoformat() if user.last_boost_time else None,
             "time_left": time_left,
@@ -255,6 +255,11 @@ def collect_gold(request):
         amount = Decimal(str(amount_to_collect))
         
         user = User.objects.get(telegram_id=telegram_id)
+        today = timezone.now().date()
+        ads_today = user.ads_watched_today if user.last_activation_date == today else 0
+        if ads_today < 3:
+            return Response({"error": "يجب مشاهدة 3 إعلانات لتفعيل التعدين اليوم"}, status=400)
+
         if amount > 0:
             user.balance += amount
             user.save()
@@ -471,8 +476,7 @@ def watch_ad(request):
 
             if user.ads_watched_today < 3:
                 user.ads_watched_today += 1
-                reward = Decimal('1.00')
-                user.balance += reward
+                reward = Decimal('0')
                 user.save()
                 return Response({
                     "message": "Ad Watched!", 
