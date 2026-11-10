@@ -204,14 +204,18 @@ body {
   background: linear-gradient(to bottom, #ffca28, #f57f17);
   color: #3e2723;
   border: 1px solid #e65100;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 900;
   position: relative;
 }
 .streak-day.last-day::after {
-  content: "🎁";
+  content: "\f6d5"; /* كود الأيقونة بتاعة Dragon في FontAwesome */
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
   position: absolute;
-  top: -5px;
-  right: -5px;
-  font-size: 8px;
+  top: -4px;
+  right: -4px;
+  font-size: 10px;
+  color: #d84315;
+  text-shadow: 0 0 3px white;
 }
