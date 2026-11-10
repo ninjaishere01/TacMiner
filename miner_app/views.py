@@ -6,7 +6,7 @@ from .models import User, Worker, UserWorker, UserTask, WithdrawRequest, Pending
 from rest_framework.permissions import AllowAny
 from decimal import Decimal
 from django.utils import timezone
-from datetime import timedelta
+from datetime import datetime, timedelta
 import requests
 import random
 from django.conf import settings
@@ -229,6 +229,20 @@ def login_or_register(request):
             if now < cooldown_end:
                 boost_cooldown_left = int((cooldown_end - now).total_seconds())
 
+
+
+        # حساب الوقت المتبقي لتفعيل التعدين (24 ساعة)
+    activation_time_left = 0
+    if user.last_activation_date:
+        # بنعتبر إن التفعيل صالح لمدة 24 ساعة من بداية اليوم
+        activation_end = timezone.make_aware(
+            datetime.combine(user.last_activation_date, time.max)
+        )
+        now = timezone.now()
+        if now < activation_end:
+            activation_time_left = int((activation_end - now).total_seconds())
+
+    
     # 8. بنحسب الإنتاج الحالي للعمال
     production = calculate_user_production(user)
     referred_users = list(user.referrals.all())
@@ -266,6 +280,7 @@ def login_or_register(request):
             "has_checked_today": user.last_daily_check == timezone.now().date() if user.last_daily_check else False,
             "boost_cooldown_left": boost_cooldown_left,
             "daily_streak": user.daily_streak,
+            "activation_time_left": activation_time_left,
         }
     })
 

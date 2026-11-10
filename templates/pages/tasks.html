@@ -115,6 +115,15 @@
           </div>
           <div class="task-info">
             <h6>شاهد لتفعيل تعدين اليوم</h6>
+            <!-- ✅ العداد الجديد (مخفي في الأول) -->
+            <div
+              id="activation-timer"
+              class="d-none text-warning fw-bold mt-1"
+              style="font-size: 13px"
+            >
+              ⏳ متبقي: <span id="activation-time-left">00:00:00</span>
+            </div>
+
             <div class="task-progress-container">
               <div
                 class="task-progress-bar"
@@ -184,7 +193,6 @@
             class="btn btn-task-action"
             id="boost-btn"
             onclick="watchBoostAd()"
-            disabled
           >
             شاهد
           </button>
@@ -469,9 +477,16 @@
                 data.new_balance.toLocaleString("en-US");
 
               if (watchedCount >= 3) {
+                // ✅ التعديل: إخفاء الزرار وإظهار العداد
                 window.adsActivated = true;
-                document.getElementById("activation-btn").disabled = true;
-                document.getElementById("activation-btn").innerText = "اكتمل";
+                document.getElementById("activation-btn").style.display =
+                  "none";
+                document
+                  .getElementById("activation-timer")
+                  .classList.remove("d-none");
+
+                // نبدأ العداد بـ 24 ساعة
+                startActivationTimer(24 * 60 * 60);
               }
 
               Swal.fire({
@@ -648,6 +663,33 @@
             let seconds = timeLeft % 60;
             timerElement.innerText = `متاح بعد: ${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
             timeLeft--;
+          }
+        }, 1000);
+      }
+
+      // ==========================================
+      // 7. دالة عداد التفعيل (24 ساعة)
+      // ==========================================
+      function startActivationTimer(secondsLeft) {
+        const timerEl = document.getElementById("activation-time-left");
+        if (!timerEl) return;
+
+        let interval = setInterval(() => {
+          if (secondsLeft <= 0) {
+            clearInterval(interval);
+            timerEl.innerText = "00:00:00";
+            // ✅ التعديل: إظهار الزرار تاني وإخفاء العداد
+            document.getElementById("activation-btn").style.display = "block";
+            document.getElementById("activation-btn").disabled = false;
+            document.getElementById("activation-timer").classList.add("d-none");
+            document.getElementById("activation-watched").innerText = "0";
+            document.getElementById("activation-progress").style.width = "0%";
+          } else {
+            let hours = Math.floor(secondsLeft / 3600);
+            let minutes = Math.floor((secondsLeft % 3600) / 60);
+            let seconds = secondsLeft % 60;
+            timerEl.innerText = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+            secondsLeft--;
           }
         }, 1000);
       }
