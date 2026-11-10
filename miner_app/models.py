@@ -38,6 +38,7 @@ class User(models.Model):
         # نظام تسجيل الدخول اليومي
     daily_streak = models.IntegerField(default=0, verbose_name="عدد أيام الدخول المتتالية")
     last_daily_check = models.DateField(null=True, blank=True, verbose_name="تاريخ آخر تسجيل دخول")
+    has_claimed_30_day_gift = models.BooleanField(default=False, verbose_name="اخد مكافأة اليوم 30")
 
     def __str__(self):
         return f"{self.username or self.telegram_id}"

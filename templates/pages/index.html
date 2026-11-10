@@ -97,9 +97,15 @@
               <div class="stat-icon"><i class="fa-solid fa-clock"></i></div>
               <div class="stat-info">
                 <span class="stat-title">Hour:</span>
+                <span
+                  id="hour-boost-timer"
+                  class="d-none"
+                  style="display: block; font-size: 10px; font-weight: 700"
+                ></span>
                 <span class="stat-val">
                   <i class="fa-solid fa-coins"></i>
                   <span id="stat-hour">0</span>
+                  <span id="hour-boost-x2" class="d-none">⚡ x2</span>
                 </span>
               </div>
             </div>
@@ -223,6 +229,56 @@
       </div>
     </nav>
 
+    <script>
+      let hourBoostTimerId = null;
+
+      function startHourBoostCountdown(secondsLeft) {
+        const badge = document.getElementById("hour-boost-x2");
+        const timer = document.getElementById("hour-boost-timer");
+        if (badge) badge.classList.remove("d-none");
+        if (!timer) return;
+        if (hourBoostTimerId) clearTimeout(hourBoostTimerId);
+
+        timer.classList.remove("d-none");
+        let timeLeft = Number(secondsLeft) || 0;
+
+        const tick = () => {
+          if (timeLeft <= 0) {
+            if (badge) badge.classList.add("d-none");
+            timer.classList.add("d-none");
+            timer.innerText = "";
+            hourBoostTimerId = null;
+            return;
+          }
+          const minutes = Math.floor(timeLeft / 60);
+          const seconds = timeLeft % 60;
+          timer.innerText =
+            "⚡ x2 " +
+            String(minutes).padStart(2, "0") +
+            ":" +
+            String(seconds).padStart(2, "0");
+          timeLeft -= 1;
+          hourBoostTimerId = setTimeout(tick, 1000);
+        };
+        tick();
+      }
+
+      const originalFetch = window.fetch.bind(window);
+      window.fetch = async function (...args) {
+        const response = await originalFetch(...args);
+        try {
+          const requestUrl =
+            typeof args[0] === "string" ? args[0] : args[0] && args[0].url;
+          if (requestUrl && String(requestUrl).includes("/api/login/")) {
+            const data = await response.clone().json();
+            if (data && data.user && data.user.time_left > 0) {
+              startHourBoostCountdown(data.user.time_left);
+            }
+          }
+        } catch (err) {}
+        return response;
+      };
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{% static 'js/game.js' %}"></script>
     <script src="{% static 'js/index.js' %}"></script>

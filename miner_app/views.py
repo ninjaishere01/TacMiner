@@ -891,38 +891,40 @@ def daily_check_in(request):
         return Response({"error": "Missing data"}, status=400)
 
     try:
-        user = User.objects.get(telegram_id=telegram_id)
         today = timezone.now().date()
 
-        # لو اليوزر سجل النهاردة خلاص
-        if user.last_daily_check == today:
-            return Response({"error": "لقد سجلت دخولك اليوم بالفعل"}, status=400)
+        with transaction.atomic():
+            user = User.objects.select_for_update().get(telegram_id=telegram_id)
 
-        # لو كان غايب يوم أو أكتر، نصفّر العداد
-        if user.last_daily_check:
-            days_diff = (today - user.last_daily_check).days
-            if days_diff > 1:
-                user.daily_streak = 0
+            # لو اليوزر سجل النهاردة خلاص
+            if user.last_daily_check == today:
+                return Response({"error": "لقد سجلت دخولك اليوم بالفعل"}, status=400)
 
-        # نزود اليوم
-        user.daily_streak += 1
-        user.last_daily_check = today
+            # لو كان غايب يوم أو أكتر، نصفّر العداد
+            if user.last_daily_check:
+                days_diff = (today - user.last_daily_check).days
+                if days_diff > 1:
+                    user.daily_streak = 0
 
-        reward_message = "+1 TAC"
+            # نزود اليوم
+            user.daily_streak += 1
+            user.last_daily_check = today
 
-        # لو وصل 30 يوم، ندي عامل Dragon
-        if user.daily_streak >= 30:
-            dragon_worker = Worker.objects.filter(name="Dragon").first()
-            if dragon_worker:
-                uw, created = UserWorker.objects.get_or_create(user=user, worker=dragon_worker)
-                uw.level += 1
-                uw.save()
-                reward_message = "🎉 مبروك! حصلت على عامل Dragon + 1 TAC"
-                user.daily_streak = 0  # نصفّر العداد بعد المكافأة الكبيرة
+            reward_message = "+1 TAC"
 
-        # نضيف الـ 1 TAC
-        user.balance += Decimal('1.0')
-        user.save()
+            # مكافأة اليوم 30 مرة واحدة، والعداد يفضل 30
+            if user.daily_streak >= 30 and not user.has_claimed_30_day_gift:
+                dragon_worker = Worker.objects.filter(name="Dragon").first()
+                if dragon_worker:
+                    uw, created = UserWorker.objects.get_or_create(user=user, worker=dragon_worker)
+                    uw.level += 1
+                    uw.save()
+                    reward_message = "🎉 مبروك! حصلت على عامل Dragon + 1 TAC"
+                    user.has_claimed_30_day_gift = True
+
+            # نضيف الـ 1 TAC ونحفظ مرة واحدة
+            user.balance += Decimal('1.0')
+            user.save()
 
         return Response({
             "message": "Check-in Successful!",

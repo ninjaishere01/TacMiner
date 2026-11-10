@@ -74,7 +74,8 @@
             <!-- المربعات هتترسم هنا بالجافاسكريبت -->
           </div>
           <p class="text-muted text-center mt-2 mb-0" style="font-size: 10px">
-            سجل دخولك كل يوم، وفي اليوم الـ 30 هتاخد عامل Dragon مجاناً!
+            سجل دخولك كل يوم، وفي اليوم الـ 30 هتاخد
+            <strong>عامل Dragon</strong> (قيمته 250 TAC) مجاناً!
           </p>
           <button
             class="btn btn-warning w-100 mt-2 fw-bold"
@@ -540,7 +541,7 @@
           } else {
             let minutes = Math.floor((timeLeft % 3600) / 60);
             let seconds = timeLeft % 60;
-            timerElement.innerText = `سرعة التعدين الآن حتى: ${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+            timerElement.innerText = `⚡ سرعة التعدين x2 حتى: ${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
             timeLeft--;
           }
         }, 1000);
@@ -603,6 +604,9 @@
         let html = "";
         for (let i = 1; i <= 30; i++) {
           let className = "streak-day";
+          if (i === 30) {
+            className += " last-day";
+          }
           // اليوم اللي خلص عليه علامة صح
           if (i <= dailyStreak) {
             className += " done";
@@ -612,10 +616,6 @@
           // اليوم الحالي
           else if (i === dailyStreak + 1) {
             className += " current";
-          }
-          // اليوم 30 (الجايزة)
-          if (i === 30) {
-            className += " last-day";
           }
           html += `<div class="${className}">${i}</div>`;
         }
