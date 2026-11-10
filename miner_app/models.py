@@ -33,7 +33,7 @@ class User(models.Model):
     # التواريخ
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاريخ الانضمام")
     last_activity = models.DateTimeField(auto_now=True, verbose_name="آخر نشاط")
-    last_collected_at = models.DateTimeField( verbose_name="آخر مرة تم تحديث الرصيد")
+    last_collected_at = models.DateTimeField(null=True, blank=True, verbose_name="آخر مرة تم تحديث الرصيد")
 
         # نظام تسجيل الدخول اليومي
     daily_streak = models.IntegerField(default=0, verbose_name="عدد أيام الدخول المتتالية")
