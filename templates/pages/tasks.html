@@ -344,7 +344,7 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            telegram_id: telegramId,
+            initData: window.Telegram.WebApp.initData,
             channel_username: channelUsername,
           }),
         })
@@ -364,7 +364,7 @@
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                telegram_id: telegramId,
+                initData: window.Telegram.WebApp.initData,
                 username: username,
                 task_name: `channel_${taskId}`,
               }),
@@ -413,7 +413,7 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            telegram_id: telegramId,
+            initData: window.Telegram.WebApp.initData,
             username: username,
             ad_type: "activation",
           }),
@@ -470,7 +470,7 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            telegram_id: telegramId,
+            initData: window.Telegram.WebApp.initData,
             username: username,
             ad_type: "boost",
           }),
@@ -656,7 +656,7 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            telegram_id: telegramId,
+            initData: window.Telegram.WebApp.initData,
           }),
         })
           .then((res) => res.json())
@@ -703,7 +703,7 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            telegram_id: telegramId,
+            initData: window.Telegram.WebApp.initData,
             username: username,
             referral_id: referralId,
           }),

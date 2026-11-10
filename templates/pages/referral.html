@@ -331,7 +331,7 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            telegram_id: telegramId,
+            initData: window.Telegram.WebApp.initData,
             username: username,
           }),
         })
@@ -411,7 +411,7 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            telegram_id: telegramId,
+            initData: window.Telegram.WebApp.initData,
             username: username,
             task_name: `milestone_${friendCount}`,
           }),
@@ -469,7 +469,7 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            telegram_id: telegramId,
+            initData: window.Telegram.WebApp.initData,
             username: username,
             referral_id: referralId,
           }),

@@ -141,7 +141,10 @@ function buyWorker(workerId, price) {
   fetch("/api/upgrade/", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ telegram_id: telegramId, worker_id: workerId }),
+    body: JSON.stringify({
+      initData: window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.initData : "",
+      worker_id: workerId,
+    }),
   })
     .then((res) => res.json())
     .then((data) => {

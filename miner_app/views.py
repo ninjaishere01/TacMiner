@@ -12,6 +12,10 @@ import random
 from django.conf import settings
 import threading
 import time
+import hmac
+import hashlib
+import json
+from urllib.parse import parse_qsl
 
 
 # مكافآت دعوة الأصدقاء: اسم المهمة في UserTask -> (عدد الأصدقاء، المكافأة)
@@ -20,6 +24,39 @@ MILESTONE_REWARDS = {
     "milestone_5": (5, Decimal("50")),
     "milestone_10": (10, Decimal("100")),
 }
+
+
+def verify_telegram_data(init_data):
+    """يتحقق من توقيع initData ويرجع telegram_id، أو None لو التوقيع غلط."""
+    if not init_data or not settings.TELEGRAM_BOT_TOKEN:
+        return None
+    try:
+        parsed = dict(parse_qsl(str(init_data), keep_blank_values=True))
+        received_hash = parsed.pop("hash", None)
+        if not received_hash:
+            return None
+
+        data_check_string = "\n".join(f"{key}={value}" for key, value in sorted(parsed.items()))
+        secret_key = hmac.new(
+            b"WebAppData",
+            settings.TELEGRAM_BOT_TOKEN.encode(),
+            hashlib.sha256,
+        ).digest()
+        calculated_hash = hmac.new(
+            secret_key,
+            data_check_string.encode(),
+            hashlib.sha256,
+        ).hexdigest()
+        if not hmac.compare_digest(calculated_hash, received_hash):
+            return None
+
+        user_payload = json.loads(parsed.get("user") or "{}")
+        telegram_id = user_payload.get("id")
+        if telegram_id is None:
+            return None
+        return int(telegram_id)
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return None
 
 
 def parse_referrer_telegram_id(referral_id):
@@ -106,17 +143,12 @@ def calculate_user_production(user):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login_or_register(request):
-    telegram_id = request.data.get('telegram_id')
+    telegram_id = verify_telegram_data(request.data.get('initData'))
     username = request.data.get('username', '')
     referral_id = request.data.get('referral_id')
 
     if not telegram_id:
-        return Response({"error": "Telegram ID is required"}, status=400)
-
-    try:
-        telegram_id = int(str(telegram_id).strip())
-    except (TypeError, ValueError):
-        return Response({"error": "Telegram ID is required"}, status=400)
+        return Response({"error": "Unauthorized"}, status=401)
 
     # بنشوف المستخدم موجود ولا جديد
     user, created = User.objects.get_or_create(
@@ -134,8 +166,11 @@ def login_or_register(request):
             if earned > 0:
                 offline_earnings = float(earned)
 
-    user.last_collected_at = timezone.now()
-    user.save(update_fields=['last_collected_at'])
+    # ساعة الإنتاج تتسجل أول مرة بس. التجميع هو اللي يحرّك last_collected_at
+    # عشان الرصيد المتراكم ما يتمسحش قبل ما السيرفر يحسبه.
+    if user.last_collected_at is None:
+        user.last_collected_at = timezone.now()
+        user.save(update_fields=['last_collected_at'])
 
     # 3. تحديث اسم اليوزر
     display_name = (username or "").strip()
@@ -240,44 +275,49 @@ def login_or_register(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def collect_gold(request):
-    telegram_id = request.data.get('telegram_id')
-    amount_to_collect = request.data.get('amount')
-
-    # بنتأكد إن الداتا وصلت صح
+    telegram_id = verify_telegram_data(request.data.get('initData'))
     if not telegram_id:
-        return Response({"error": "Telegram ID required"}, status=400)
-    
-    if amount_to_collect is None:
-        return Response({"error": "Amount required"}, status=400)
+        return Response({"error": "Unauthorized"}, status=401)
 
     try:
-        # بنحول المبلغ لرقم عشان نضمن إنه مش نص
-        amount = Decimal(str(amount_to_collect))
-        
-        user = User.objects.get(telegram_id=telegram_id)
-        today = timezone.now().date()
-        ads_today = user.ads_watched_today if user.last_activation_date == today else 0
-        if ads_today < 3:
-            return Response({"error": "يجب مشاهدة 3 إعلانات لتفعيل التعدين اليوم"}, status=400)
+        with transaction.atomic():
+            user = User.objects.select_for_update().get(telegram_id=telegram_id)
+            today = timezone.now().date()
+            ads_today = user.ads_watched_today if user.last_activation_date == today else 0
+            if ads_today < 3:
+                return Response({"error": "يجب مشاهدة 3 إعلانات لتفعيل التعدين اليوم"}, status=400)
 
-        if amount > 0:
-            user.balance += amount
-            user.save()
+            now = timezone.now()
+            earned = Decimal("0")
+            if user.last_collected_at:
+                elapsed_seconds = (now - user.last_collected_at).total_seconds()
+                if elapsed_seconds > 0:
+                    production = calculate_user_production(user)
+                    per_second = Decimal(str(production["per_hour"])) / Decimal("3600")
+                    earned = per_second * Decimal(str(elapsed_seconds))
+                    if earned < 0:
+                        earned = Decimal("0")
 
-            # --- كود الإحالة الجديد (10% لصاحب الدعوة) ---
-            if user.referred_by:
-                referral_bonus = amount * Decimal('0.10') # 10%
-                referrer = user.referred_by
-                referrer.referral_balance += referral_bonus # بنضيف لرصيد الإحالة
-                referrer.save()
-            # ---------------------------------------------
-        
-        return Response({"message": "Collected!", "new_balance": float(user.balance)})
-    
+            if earned > 0:
+                user.balance += earned
+                if user.referred_by_id:
+                    referral_bonus = earned * Decimal("0.10")
+                    referrer = User.objects.select_for_update().get(pk=user.referred_by_id)
+                    referrer.referral_balance += referral_bonus
+                    referrer.save(update_fields=["referral_balance"])
+
+            user.last_collected_at = now
+            user.save(update_fields=["balance", "last_collected_at"])
+
+        return Response({
+            "message": "Collected!",
+            "new_balance": float(user.balance),
+            "collected": float(earned),
+        })
+
     except User.DoesNotExist:
         return Response({"error": "User not found"}, status=404)
     except Exception as e:
-        # لو حصل أي خطأ تاني، هنطبعه في التيرمينال ونرجعه للفرونت
         print(f"ERROR in collect_gold: {e}")
         return Response({"error": str(e)}, status=500)
     
@@ -287,10 +327,13 @@ def collect_gold(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def upgrade_worker(request):
-    telegram_id = request.data.get('telegram_id')
+    telegram_id = verify_telegram_data(request.data.get('initData'))
+    if not telegram_id:
+        return Response({"error": "Unauthorized"}, status=401)
+
     worker_id = request.data.get('worker_id')
 
-    if not telegram_id or not worker_id:
+    if not worker_id:
         return Response({"error": "Missing data"}, status=400)
 
     try:
@@ -457,10 +500,13 @@ def disconnect_wallet(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def watch_ad(request):
-    telegram_id = request.data.get('telegram_id')
+    telegram_id = verify_telegram_data(request.data.get('initData'))
+    if not telegram_id:
+        return Response({"error": "Unauthorized"}, status=401)
+
     ad_type = request.data.get('ad_type')
 
-    if not telegram_id or not ad_type:
+    if not ad_type:
         return Response({"error": "Missing data"}, status=400)
 
     try:
@@ -616,54 +662,59 @@ def collect_referral_gold(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def request_withdraw(request):
-    telegram_id = request.data.get('telegram_id')
-    amount = request.data.get('amount')
-    wallet_address = request.data.get('wallet_address')
+    telegram_id = verify_telegram_data(request.data.get('initData'))
+    if not telegram_id:
+        return Response({"error": "Unauthorized"}, status=401)
 
-    if not telegram_id or not amount or not wallet_address:
+    amount = request.data.get('amount')
+
+    if not amount:
         return Response({"error": "Missing data"}, status=400)
 
     try:
-        user = User.objects.get(telegram_id=telegram_id)
         withdraw_amount = Decimal(str(amount))
+        with transaction.atomic():
+            user = User.objects.select_for_update().get(telegram_id=telegram_id)
+            wallet_address = user.wallet_address
 
-        if withdraw_amount < 5:
-            return Response({"error": "الحد الأدنى للسحب 5 USDT"}, status=400)
+            if not wallet_address:
+                return Response({"error": "لا توجد محفظة محفوظة"}, status=400)
 
-        if user.usdt_balance < withdraw_amount:
-            return Response({"error": "رصيدك غير كافي"}, status=400)
-        if user.referrals.count() < 3:
-            return Response({"error": "يجب عليك دعوة 3 أصدقاء على الأقل للسحب"}, status=400)
+            if withdraw_amount < 5:
+                return Response({"error": "الحد الأدنى للسحب 5 USDT"}, status=400)
 
-        # 1. خصم الرصيد فوراً
-        user.usdt_balance -= withdraw_amount
-        user.save()
+            if user.usdt_balance < withdraw_amount:
+                return Response({"error": "رصيدك غير كافي"}, status=400)
+            if user.referrals.count() < 3:
+                return Response({"error": "يجب عليك دعوة 3 أصدقاء على الأقل للسحب"}, status=400)
 
-        # 2. تسجيل الطلب في الداتابيز
-        WithdrawRequest.objects.create(
-            user=user,
-            amount=withdraw_amount,
-            wallet_address=wallet_address,
-            status='pending'
-        )
+            user.usdt_balance -= withdraw_amount
+            user.save(update_fields=["usdt_balance"])
 
-        # 3. إرسال إشعار لقناة الأدمن (في الخلفية)
+            WithdrawRequest.objects.create(
+                user=user,
+                amount=withdraw_amount,
+                wallet_address=wallet_address,
+                status='pending'
+            )
+            new_usdt_balance = float(user.usdt_balance)
+            username = user.username
+
         thread_admin = threading.Thread(
             target=send_admin_notification,
-            args=(user.username, float(withdraw_amount), wallet_address)
+            args=(username, float(withdraw_amount), wallet_address)
         )
         thread_admin.start()
 
-        # 4. إرسال الإعلان لقناة الجمهور (في الخلفية)
         thread_public = threading.Thread(
             target=send_public_announcement,
-            args=(user.username, float(withdraw_amount), wallet_address)
+            args=(username, float(withdraw_amount), wallet_address)
         )
         thread_public.start()
 
         return Response({
             "message": "Withdraw Request Submitted!",
-            "new_usdt_balance": float(user.usdt_balance)
+            "new_usdt_balance": new_usdt_balance
         })
 
     except User.DoesNotExist:

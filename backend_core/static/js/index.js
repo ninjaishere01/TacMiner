@@ -24,7 +24,7 @@ function renderHomeGrid() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          telegram_id: telegramId,
+          initData: window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.initData : "",
           username: username,
           referral_id: referralId,
         }),
@@ -74,7 +74,7 @@ function updateUpgradeUI() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          telegram_id: telegramId,
+          initData: window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.initData : "",
           referral_id: referralId,
           username: username,
         }),
@@ -156,14 +156,15 @@ function collectGold() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        telegram_id: telegramId,
-        amount: storage,
+        initData: window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.initData : "",
         referral_id: referralId,
       }),
     })
       .then((res) => res.json())
       .then((data) => {
         if (data.message === "Collected!") {
+          const collected = Number(data.collected);
+          const collectedAmount = Number.isFinite(collected) ? collected : storage;
           localStorage.setItem("mineStorage", 0);
           document.getElementById("current-gold").innerText = "0.0000";
 
@@ -175,7 +176,7 @@ function collectGold() {
           setTimeout(() => {
             Swal.fire({
               title: "تم التجميع!",
-              text: `تمت إضافة ${storage.toFixed(2)} TAC إلى رصيدك.`,
+              text: `تمت إضافة ${collectedAmount.toFixed(2)} TAC إلى رصيدك.`,
               icon: "success",
               timer: 2500,
               showConfirmButton: false,
@@ -401,7 +402,7 @@ document.addEventListener("DOMContentLoaded", () => {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      telegram_id: telegramId,
+      initData: window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.initData : "",
       username: username,
       referral_id: referralId,
     }),
@@ -445,14 +446,10 @@ document.addEventListener("DOMContentLoaded", () => {
           miningInterval = setInterval(simulateMining, 1000);
         }
 
-        let storage = parseFloat(localStorage.getItem("mineStorage")) || 0;
         const offlineEarnings = Number(data.user.offline_earnings) || 0;
-        if (offlineEarnings > 0) {
-          storage += offlineEarnings;
-          localStorage.setItem("mineStorage", storage);
-        }
+        localStorage.setItem("mineStorage", offlineEarnings);
         const goldEl = document.getElementById("current-gold");
-        if (goldEl) goldEl.innerText = storage.toFixed(4);
+        if (goldEl) goldEl.innerText = offlineEarnings.toFixed(4);
       }
     })
     .catch((err) => console.error("API Error:", err));
