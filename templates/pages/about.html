@@ -36,8 +36,7 @@
       <div class="d-flex align-items-center gap-2">
         <a
           href="{% url 'profile' %}"
-          class="text-info fs-4 text-decoration-none"
-        >
+          class="text-info fs-4 text-decoration-none" oncontextmenu="return false;">
           <i class="fa-solid fa-arrow-right"></i>
         </a>
       </div>
@@ -46,7 +45,7 @@
           class="icon-btn rounded-pill d-flex justify-content-center align-items-center gap-2"
         >
           <h6 class="mb-0 text-warning fw-bold" id="global-balance">0.00</h6>
-          <img src="{% static 'images/tac-coin.png' %}" alt="" width="25" />
+          <img src="{% static 'images/tac-coin.png' %}" alt="" width="25" oncontextmenu="return false;" />
         </div>
       </div>
     </header>
@@ -64,8 +63,7 @@
           <img
             src="{% static 'logo-brand/one-logo.png' %}"
             alt="TAC Miner"
-            class="about-logo"
-          />
+            class="about-logo" oncontextmenu="return false;" />
           <h5 class="text-center border-0 pb-0" style="border: none !important">
             TAC Miner
           </h5>
@@ -107,19 +105,19 @@
 
     <nav class="bottom-nav fixed-bottom" oncontextmenu="return false;">
       <div class="d-flex justify-content-around align-items-end pb-2 pt-1">
-        <a href="{% url 'index' %}" class="nav-item text-center">
+        <a href="{% url 'index' %}" class="nav-item text-center" oncontextmenu="return false;">
           <i class="fa-solid fa-hammer fs-5"></i><br /><small
             style="font-size: 10px"
             >الرئيسية</small
           >
         </a>
-        <a href="{% url 'upgrade' %}" class="nav-item text-center">
+        <a href="{% url 'upgrade' %}" class="nav-item text-center" oncontextmenu="return false;">
           <i class="fa-solid fa-arrow-up-right-dots fs-5"></i><br /><small
             style="font-size: 10px"
             >تطوير</small
           >
         </a>
-        <a href="{% url 'tasks' %}" class="nav-item center-btn text-center">
+        <a href="{% url 'tasks' %}" class="nav-item center-btn text-center" oncontextmenu="return false;">
           <div
             class="circle-glow d-flex justify-content-center align-items-center"
           >
@@ -129,13 +127,13 @@
             >المهام</small
           >
         </a>
-        <a href="{% url 'referral' %}" class="nav-item text-center">
+        <a href="{% url 'referral' %}" class="nav-item text-center" oncontextmenu="return false;">
           <i class="fa-solid fa-user-group fs-5"></i><br /><small
             style="font-size: 10px"
             >الإحالة</small
           >
         </a>
-        <a href="{% url 'profile' %}" class="nav-item text-center">
+        <a href="{% url 'profile' %}" class="nav-item text-center" oncontextmenu="return false;">
           <i class="fa-solid fa-user fs-5"></i><br /><small
             style="font-size: 10px"
             >حسابي</small

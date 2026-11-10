@@ -41,8 +41,7 @@
             src="{% static 'logo-brand/one-logo.png' %}"
             alt=""
             width="50"
-            style="padding-bottom: 10px"
-          />
+            style="padding-bottom: 10px" oncontextmenu="return false;" />
         </div>
         <p class="my-user"> new user </p>
       </div>
@@ -57,7 +56,7 @@
           class="icon-btn rounded-pill d-flex justify-content-center align-items-center gap-2"
         >
           <h6 class="mb-0 text-warning fw-bold" id="global-balance">0.00</h6>
-          <img src="{% static 'images/tac-coin.png' %}" alt="" width="25" />
+          <img src="{% static 'images/tac-coin.png' %}" alt="" width="25" oncontextmenu="return false;" />
         </div>
       </div>
     </header>
@@ -75,8 +74,7 @@
               <img
                 src="{% static 'images/step.png' %}"
                 alt="Mine"
-                class="mine-img mine-animated"
-              />
+                class="mine-img mine-animated" oncontextmenu="return false;" />
             </div>
             <div class="mine-capacity">
               <div class="progress-bar-bg">
@@ -163,8 +161,7 @@
         <a
           href="https://ston.fi/tokens/tac"
           target="_blank"
-          class="btn-stonfi-trade w-100"
-        >
+          class="btn-stonfi-trade w-100" oncontextmenu="return false;">
           <i class="fa-solid fa-arrow-right-arrow-left me-2"></i> تداول TAC على
           STON.fi
         </a>
@@ -192,19 +189,19 @@
     <!-- الشريط السفلي -->
     <nav class="bottom-nav fixed-bottom" oncontextmenu="return false;">
       <div class="d-flex justify-content-around align-items-end pb-2 pt-1">
-        <a href="{% url 'index' %}" class="nav-item text-center">
+        <a href="{% url 'index' %}" class="nav-item text-center" oncontextmenu="return false;">
           <i class="fa-solid fa-hammer fs-5"></i><br /><small
             style="font-size: 10px"
             >الرئيسية</small
           >
         </a>
-        <a href="{% url 'upgrade' %}" class="nav-item text-center">
+        <a href="{% url 'upgrade' %}" class="nav-item text-center" oncontextmenu="return false;">
           <i class="fa-solid fa-arrow-up-right-dots fs-5"></i><br /><small
             style="font-size: 10px"
             >تطوير</small
           >
         </a>
-        <a href="{% url 'tasks' %}" class="nav-item center-btn text-center">
+        <a href="{% url 'tasks' %}" class="nav-item center-btn text-center" oncontextmenu="return false;">
           <div
             class="circle-glow d-flex justify-content-center align-items-center"
           >
@@ -214,13 +211,13 @@
             >المهام</small
           >
         </a>
-        <a href="{% url 'referral' %}" class="nav-item text-center">
+        <a href="{% url 'referral' %}" class="nav-item text-center" oncontextmenu="return false;">
           <i class="fa-solid fa-user-group fs-5"></i><br /><small
             style="font-size: 10px"
             >الإحالة</small
           >
         </a>
-        <a href="{% url 'profile' %}" class="nav-item text-center">
+        <a href="{% url 'profile' %}" class="nav-item text-center" oncontextmenu="return false;">
           <i class="fa-solid fa-user fs-5"></i><br /><small
             style="font-size: 10px"
             >حسابي</small
