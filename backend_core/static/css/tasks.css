@@ -167,12 +167,17 @@ body {
 
 .streak-grid {
   display: grid;
-  grid-template-columns: repeat(10, 1fr); /* 10 أعمدة */
+  grid-template-columns: repeat(10, minmax(0, 1fr));
   gap: 4px;
+  width: 100%;
+  margin: 8px 0 4px;
 }
 
 .streak-day {
-  aspect-ratio: 1; /* عشان يبقوا مربعات */
+  aspect-ratio: 1;
+  min-height: 24px;
+  width: 100%;
+  box-sizing: border-box;
   border-radius: 4px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
