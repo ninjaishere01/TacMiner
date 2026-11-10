@@ -222,6 +222,28 @@ function applyProduction(production) {
   if (statMonthEl) statMonthEl.innerText = Number(production.per_month).toFixed(2);
 }
 
+function updateHourBoostCard(user) {
+  const badge = document.getElementById("hour-boost-x2");
+  const timer = document.getElementById("hour-boost-timer");
+  const multiplier = Number(user && user.boost_multiplier);
+
+  if (multiplier > 1.0) {
+    if (badge) badge.classList.remove("d-none");
+    if (typeof startHourBoostCountdown === "function" && Number(user.time_left) > 0) {
+      startHourBoostCountdown(user.time_left);
+    } else if (timer) {
+      timer.classList.remove("d-none");
+    }
+    return;
+  }
+
+  if (badge) badge.classList.add("d-none");
+  if (timer) {
+    timer.classList.add("d-none");
+    timer.innerText = "";
+  }
+}
+
 window.applyProduction = applyProduction;
 
 function simulateMining() {
@@ -331,6 +353,7 @@ document.addEventListener("DOMContentLoaded", () => {
         loadLeaderboard();
 
         applyProduction(data.user.production);
+        updateHourBoostCard(data.user);
 
         if (document.getElementById("mine-grid")) {
           if (miningInterval) clearInterval(miningInterval);

@@ -255,6 +255,7 @@ def login_or_register(request):
             "ads_watched_today": user.ads_watched_today if user.last_activation_date == timezone.now().date() else 0,
             "boost_ads_watched": user.boost_ads_watched,
             "last_boost_time": user.last_boost_time.isoformat() if user.last_boost_time else None,
+            "boost_multiplier": float(user.boost_multiplier),
             "time_left": time_left,
             "referrals": referrals_list,
             "referrals_count": referrals_count,
@@ -283,6 +284,8 @@ def collect_gold(request):
         with transaction.atomic():
             user = User.objects.select_for_update().get(telegram_id=telegram_id)
             today = timezone.now().date()
+            if user.last_activation_date != today:
+                return Response({"error": "يجب تفعيل التعدين أولاً"}, status=400)
             ads_today = user.ads_watched_today if user.last_activation_date == today else 0
             if ads_today < 3:
                 return Response({"error": "يجب مشاهدة 3 إعلانات لتفعيل التعدين اليوم"}, status=400)
@@ -531,6 +534,8 @@ def watch_ad(request):
 
             if user.ads_watched_today < 3:
                 user.ads_watched_today += 1
+                if user.ads_watched_today >= 3:
+                    user.last_activation_date = timezone.now().date()
                 reward = Decimal('0')
                 user.save()
                 return Response({

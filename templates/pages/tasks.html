@@ -42,7 +42,12 @@
     >
       <div class="d-flex align-items-center gap-2">
         <div class="border-info">
-          <img src="{% static 'logo-brand/one-logo.png' %}" alt="" width="50" oncontextmenu="return false;" />
+          <img
+            src="{% static 'logo-brand/one-logo.png' %}"
+            alt=""
+            width="50"
+            oncontextmenu="return false;"
+          />
         </div>
       </div>
       <div class="d-flex gap-2">
@@ -50,7 +55,12 @@
           class="icon-btn rounded-pill d-flex justify-content-center align-items-center gap-2"
         >
           <h6 class="mb-0 text-warning fw-bold" id="global-balance">0.00</h6>
-          <img src="{% static 'images/tac-coin.png' %}" alt="" width="25" oncontextmenu="return false;" />
+          <img
+            src="{% static 'images/tac-coin.png' %}"
+            alt=""
+            width="25"
+            oncontextmenu="return false;"
+          />
         </div>
       </div>
     </header>
@@ -174,6 +184,7 @@
             class="btn btn-task-action"
             id="boost-btn"
             onclick="watchBoostAd()"
+            disabled
           >
             شاهد
           </button>
@@ -292,19 +303,31 @@
     <!-- الشريط السفلي -->
     <nav class="bottom-nav fixed-bottom" oncontextmenu="return false;">
       <div class="d-flex justify-content-around align-items-end pb-2 pt-1">
-        <a href="{% url 'index' %}" class="nav-item text-center" oncontextmenu="return false;">
+        <a
+          href="{% url 'index' %}"
+          class="nav-item text-center"
+          oncontextmenu="return false;"
+        >
           <i class="fa-solid fa-hammer fs-5"></i><br /><small
             style="font-size: 10px"
             >الرئيسية</small
           >
         </a>
-        <a href="{% url 'upgrade' %}" class="nav-item text-center" oncontextmenu="return false;">
+        <a
+          href="{% url 'upgrade' %}"
+          class="nav-item text-center"
+          oncontextmenu="return false;"
+        >
           <i class="fa-solid fa-arrow-up-right-dots fs-5"></i><br /><small
             style="font-size: 10px"
             >تطوير</small
           >
         </a>
-        <a href="{% url 'tasks' %}" class="nav-item center-btn text-center" oncontextmenu="return false;">
+        <a
+          href="{% url 'tasks' %}"
+          class="nav-item center-btn text-center"
+          oncontextmenu="return false;"
+        >
           <div
             class="circle-glow d-flex justify-content-center align-items-center"
           >
@@ -314,13 +337,21 @@
             >المهام</small
           >
         </a>
-        <a href="{% url 'referral' %}" class="nav-item text-center" oncontextmenu="return false;">
+        <a
+          href="{% url 'referral' %}"
+          class="nav-item text-center"
+          oncontextmenu="return false;"
+        >
           <i class="fa-solid fa-user-group fs-5"></i><br /><small
             style="font-size: 10px"
             >الإحالة</small
           >
         </a>
-        <a href="{% url 'profile' %}" class="nav-item text-center" oncontextmenu="return false;">
+        <a
+          href="{% url 'profile' %}"
+          class="nav-item text-center"
+          oncontextmenu="return false;"
+        >
           <i class="fa-solid fa-user fs-5"></i><br /><small
             style="font-size: 10px"
             >حسابي</small
@@ -488,6 +519,18 @@
                 boostProgressEl.style.width = `${percentage}%`;
               }
 
+              // ✅ التعديل الجديد: الزرار يفضل شغال لحد 5 إعلانات
+              const boostBtn = document.getElementById("boost-btn");
+              if (boostBtn) {
+                if (watchedCount < 5) {
+                  boostBtn.disabled = false; // شغال عشان تقدر تشوف الباقي
+                  boostBtn.innerText = "شاهد";
+                } else if (watchedCount === 5) {
+                  boostBtn.disabled = false; // شغال عشان تعمل Activate
+                  boostBtn.innerText = "تفعيل"; // أو سيبها "شاهد" لو هي بتتفعل أوتوماتيك من الباك إند
+                }
+              }
+
               Swal.fire({
                 title: "تم!",
                 text: "تم تسجيل الإعلان، متبقي " + (5 - watchedCount),
@@ -596,7 +639,7 @@
             timerElement.remove();
             boostBtn.style.display = "block";
             boostBtn.innerText = "شاهد";
-            boostBtn.disabled = false;
+            boostBtn.disabled = true;
             document.getElementById("boost-watched").innerText = "0";
             document.getElementById("boost-progress").style.width = "0%";
           } else {
@@ -779,9 +822,11 @@
                 startBoostCooldownTimer(user.boost_cooldown_left);
               } else {
                 // مفيش بوست ولا استراحة
+                const boostCountForBtn =
+                  parseInt(user.boost_ads_watched, 10) || 0;
                 boostBtn.style.display = "block";
                 boostBtn.innerText = "شاهد";
-                boostBtn.disabled = false;
+                boostBtn.disabled = boostCountForBtn < 5;
               }
             }
           })
