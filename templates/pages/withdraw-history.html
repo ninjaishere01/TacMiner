@@ -120,7 +120,13 @@
         const container = document.getElementById("history-container");
 
         // بنجيب الطلبات من الباك إند
-        fetch(`/api/withdraw-history/?telegram_id=${telegramId}`)
+        fetch("/api/withdraw-history/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            initData: window.Telegram.WebApp.initData,
+          }),
+        })
           .then((res) => res.json())
           .then((requests) => {
             // لو مفيش طلبات

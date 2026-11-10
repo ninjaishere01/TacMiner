@@ -390,10 +390,14 @@ def get_workers(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def claim_task_reward(request):
-    telegram_id = request.data.get('telegram_id')
+    init_data = request.data.get('initData')
+    telegram_id = verify_telegram_data(init_data) if init_data else None
+    if not telegram_id:
+        return Response({"error": "Unauthorized"}, status=401)
+
     task_name = request.data.get('task_name')
 
-    if not telegram_id or not task_name:
+    if not task_name:
         return Response({"error": "Missing data"}, status=400)
 
     channel_tasks = {
@@ -453,10 +457,14 @@ from tonsdk.utils import Address
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def verify_wallet(request):
-    telegram_id = request.data.get('telegram_id')
+    init_data = request.data.get('initData')
+    telegram_id = verify_telegram_data(init_data) if init_data else None
+    if not telegram_id:
+        return Response({"error": "Unauthorized"}, status=401)
+
     wallet_address = request.data.get('wallet_address') # العنوان اللي جاي من TON Connect
 
-    if not telegram_id or not wallet_address:
+    if not wallet_address:
         return Response({"error": "Missing data"}, status=400)
 
     try:
@@ -482,9 +490,10 @@ def verify_wallet(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def disconnect_wallet(request):
-    telegram_id = request.data.get('telegram_id')
+    init_data = request.data.get('initData')
+    telegram_id = verify_telegram_data(init_data) if init_data else None
     if not telegram_id:
-        return Response({"error": "Missing data"}, status=400)
+        return Response({"error": "Unauthorized"}, status=401)
     try:
         user = User.objects.get(telegram_id=telegram_id)
         user.wallet_address = None
@@ -590,10 +599,14 @@ def watch_ad(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def exchange_currency(request):
-    telegram_id = request.data.get('telegram_id')
+    init_data = request.data.get('initData')
+    telegram_id = verify_telegram_data(init_data) if init_data else None
+    if not telegram_id:
+        return Response({"error": "Unauthorized"}, status=401)
+
     tac_amount = request.data.get('tac_amount')
 
-    if not telegram_id or not tac_amount:
+    if not tac_amount:
         return Response({"error": "Missing data"}, status=400)
 
     try:
@@ -630,10 +643,10 @@ def exchange_currency(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def collect_referral_gold(request):
-    telegram_id = request.data.get('telegram_id')
-    
+    init_data = request.data.get('initData')
+    telegram_id = verify_telegram_data(init_data) if init_data else None
     if not telegram_id:
-        return Response({"error": "Missing data"}, status=400)
+        return Response({"error": "Unauthorized"}, status=401)
         
     try:
         user = User.objects.get(telegram_id=telegram_id)
@@ -725,13 +738,13 @@ def request_withdraw(request):
 
 
 
-@api_view(['GET'])
+@api_view(['POST'])
 @permission_classes([AllowAny])
 def get_withdraw_history(request):
-    telegram_id = request.query_params.get('telegram_id')
-    
+    init_data = request.data.get('initData')
+    telegram_id = verify_telegram_data(init_data) if init_data else None
     if not telegram_id:
-        return Response({"error": "Missing telegram_id"}, status=400)
+        return Response({"error": "Unauthorized"}, status=401)
         
     try:
         user = User.objects.get(telegram_id=telegram_id)
@@ -929,7 +942,11 @@ def telegram_user_in_channel(telegram_id, channel_username):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def check_channel_membership(request):
-    telegram_id = request.data.get("telegram_id")
+    init_data = request.data.get('initData')
+    telegram_id = verify_telegram_data(init_data) if init_data else None
+    if not telegram_id:
+        return Response({"error": "Unauthorized"}, status=401)
+
     channel_username = request.data.get("channel_username")
     is_member = telegram_user_in_channel(telegram_id, channel_username)
     return Response({"is_member": is_member})
@@ -941,9 +958,10 @@ def check_channel_membership(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def daily_check_in(request):
-    telegram_id = request.data.get('telegram_id')
+    init_data = request.data.get('initData')
+    telegram_id = verify_telegram_data(init_data) if init_data else None
     if not telegram_id:
-        return Response({"error": "Missing data"}, status=400)
+        return Response({"error": "Unauthorized"}, status=401)
 
     try:
         today = timezone.now().date()
