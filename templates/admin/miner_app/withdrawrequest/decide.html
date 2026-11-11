@@ -1,0 +1,56 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+  <h1>تأكيد قرار السحب</h1>
+
+  <p>
+    القرار: <strong>{{ decision_label }}</strong>
+    — عدد الطلبات: <strong>{{ withdrawals|length }}</strong>
+  </p>
+
+  <table style="width: 100%; margin-bottom: 20px;">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>المستخدم</th>
+        <th>المبلغ (USDT)</th>
+        <th>المحفظة</th>
+        <th>تاريخ الطلب</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for withdrawal in withdrawals %}
+        <tr>
+          <td>{{ withdrawal.pk }}</td>
+          <td>{{ withdrawal.user.username }}</td>
+          <td>{{ withdrawal.amount }}</td>
+          <td>{{ withdrawal.wallet_address }}</td>
+          <td>{{ withdrawal.created_at }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if decision == "rejected" %}
+    <p>
+      عند الرفض يتم إرجاع قيمة الطلب للمستخدم بالـ TAC (1 USDT = 920 TAC)
+      داخل معاملة واحدة، ولمرة واحدة فقط.
+    </p>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="decision" value="{{ decision }}">
+    <input type="hidden" name="ids" value="{{ ids }}">
+
+    <div class="form-row">
+      <label for="value"><strong>{{ value_label }}:</strong></label>
+      <input type="text" id="value" name="value" required style="min-width: 320px;">
+    </div>
+
+    <div class="submit-row">
+      <input type="submit" class="default" value="{{ decision_label }}">
+      <a href="{% url 'admin:miner_app_withdrawrequest_changelist' %}" class="button cancel-link">إلغاء</a>
+    </div>
+  </form>
+{% endblock %}

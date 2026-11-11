@@ -15,7 +15,20 @@ import time
 import hmac
 import hashlib
 import json
+import logging
 from urllib.parse import parse_qsl
+from zoneinfo import ZoneInfo
+
+
+logger = logging.getLogger(__name__)
+
+CAIRO_TZ = ZoneInfo("Africa/Cairo")
+WITHDRAW_TAC_PER_USDT = Decimal("920")
+
+# حد أقصى لحجم initData عشان نمنع أي payload ضخم
+TELEGRAM_INIT_DATA_MAX_LENGTH = 8192
+# سماحية فرق الساعة بين سيرفر تيليجرام والسيرفر بتاعنا
+TELEGRAM_AUTH_DATE_FUTURE_TOLERANCE = 60
 
 
 # مكافآت دعوة الأصدقاء: اسم المهمة في UserTask -> (عدد الأصدقاء، المكافأة)
@@ -25,10 +38,18 @@ MILESTONE_REWARDS = {
     "milestone_10": (10, Decimal("100")),
 }
 
+CHANNEL_TASK_NAMES = ("channel_1", "channel_2", "channel_3", "channel_4")
+
+# أسماء المهام المسموح بيها. milestone_20 لسه بتاخد نفس مكافأة المهام العادية
+# زي ما هي دلوقتي، ومش بنغير قيمتها.
+ALLOWED_TASK_NAMES = set(CHANNEL_TASK_NAMES) | set(MILESTONE_REWARDS) | {"milestone_20"}
+
 
 def verify_telegram_data(init_data):
-    """يتحقق من توقيع initData ويرجع telegram_id، أو None لو التوقيع غلط."""
+    """يتحقق من توقيع initData وحداثته ويرجع telegram_id، أو None لو مش صالح."""
     if not init_data or not settings.TELEGRAM_BOT_TOKEN:
+        return None
+    if len(str(init_data)) > TELEGRAM_INIT_DATA_MAX_LENGTH:
         return None
     try:
         parsed = dict(parse_qsl(str(init_data), keep_blank_values=True))
@@ -48,6 +69,24 @@ def verify_telegram_data(init_data):
             hashlib.sha256,
         ).hexdigest()
         if not hmac.compare_digest(calculated_hash, received_hash):
+            return None
+
+        # التحقق من عمر initData: لازم يكون لسه جديد ومش من المستقبل
+        auth_date_value = parsed.get("auth_date")
+        if auth_date_value is None:
+            return None
+        try:
+            auth_date = int(auth_date_value)
+        except (TypeError, ValueError):
+            return None
+
+        max_age = int(
+            getattr(settings, "TELEGRAM_INITDATA_MAX_AGE_SECONDS", 86400)
+        )
+        now_ts = int(time.time())
+        if auth_date > now_ts + TELEGRAM_AUTH_DATE_FUTURE_TOLERANCE:
+            return None
+        if now_ts - auth_date > max_age:
             return None
 
         user_payload = json.loads(parsed.get("user") or "{}")
@@ -119,13 +158,9 @@ def calculate_user_production(user):
     multiplier = 1.0
     
     if user.last_boost_time:
-        # لو عدت ساعة من وقت تفعيل البوست، بنلغي البوست
+        # لو عدت ساعة من وقت تفعيل البوست، البوست مش شغال
         if now > user.last_boost_time + timedelta(hours=1):
             multiplier = 1.0
-            # نرجع السرعة لطبيعتها في الداتابيز
-            if user.boost_multiplier != 1.0:
-                user.boost_multiplier = 1.0
-                user.save()
         else:
             multiplier = float(user.boost_multiplier)
             
@@ -136,6 +171,51 @@ def calculate_user_production(user):
         "per_day": total_per_hour * 24,
         "per_month": total_per_hour * 24 * 30
     }
+
+
+def calculate_user_production_per_hour(user):
+    """نفس معادلة الإنتاج لكن بترجع Decimal عشان حسابات الرصيد تبقى دقيقة."""
+    return Decimal(str(calculate_user_production(user)["per_hour"]))
+
+
+def calculate_pending_earnings(user, now=None):
+    """أرباح الفترة اللي فاتت من غير ما نلمس الداتابيز."""
+    now = now or timezone.now()
+    if not user.last_collected_at:
+        return Decimal("0")
+    elapsed_seconds = (now - user.last_collected_at).total_seconds()
+    if elapsed_seconds <= 0:
+        return Decimal("0")
+    per_second = calculate_user_production_per_hour(user) / Decimal("3600")
+    earned = per_second * Decimal(str(elapsed_seconds))
+    return earned if earned > 0 else Decimal("0")
+
+
+def can_collect_today(user, now=None):
+    """نفس شروط جمع الأرباح اليومية: تفعيل النهاردة + 3 إعلانات."""
+    today = (now or timezone.now()).date()
+    return user.last_activation_date == today and user.ads_watched_today >= 3
+
+
+def settle_earnings(user, now=None):
+    """
+    يقفل أرباح الفترة اللي فاتت بالسرعة الحالية قبل أي ترقية أو بوست.
+    لازم يتنادى والمستخدم معمول له select_for_update جوه transaction.
+    لو المستخدم مش مفعّل النهاردة، مفيش تسوية عشان قواعد التفعيل تفضل زي ما هي.
+    """
+    now = now or timezone.now()
+    if not can_collect_today(user, now):
+        return Decimal("0")
+    earned = calculate_pending_earnings(user, now)
+    user.last_collected_at = now
+    if earned > 0:
+        user.balance += earned
+        if user.referred_by_id:
+            referrer = User.objects.select_for_update().get(pk=user.referred_by_id)
+            referrer.referral_balance += earned * Decimal("0.10")
+            referrer.save(update_fields=["referral_balance"])
+    user.save(update_fields=["balance", "last_collected_at"])
+    return earned
 
 
 
@@ -160,9 +240,7 @@ def login_or_register(request):
     if user.last_collected_at:
         elapsed_seconds = (timezone.now() - user.last_collected_at).total_seconds()
         if elapsed_seconds > 60:  # لو عدت دقيقة على الأقل
-            production = calculate_user_production(user)
-            per_second = production["per_hour"] / 3600
-            earned = Decimal(str(per_second * elapsed_seconds))
+            earned = calculate_pending_earnings(user)
             if earned > 0:
                 offline_earnings = float(earned)
 
@@ -223,7 +301,7 @@ def login_or_register(request):
             # البوست خلص، بنشوف لو في استراحة 8 ساعات
             if user.boost_multiplier != 1.0:
                 user.boost_multiplier = 1.0
-                user.save()
+                user.save(update_fields=["boost_multiplier"])
             
             cooldown_end = user.last_boost_time + timedelta(hours=8)
             if now < cooldown_end:
@@ -291,26 +369,7 @@ def collect_gold(request):
                 return Response({"error": "يجب مشاهدة 3 إعلانات لتفعيل التعدين اليوم"}, status=400)
 
             now = timezone.now()
-            earned = Decimal("0")
-            if user.last_collected_at:
-                elapsed_seconds = (now - user.last_collected_at).total_seconds()
-                if elapsed_seconds > 0:
-                    production = calculate_user_production(user)
-                    per_second = Decimal(str(production["per_hour"])) / Decimal("3600")
-                    earned = per_second * Decimal(str(elapsed_seconds))
-                    if earned < 0:
-                        earned = Decimal("0")
-
-            if earned > 0:
-                user.balance += earned
-                if user.referred_by_id:
-                    referral_bonus = earned * Decimal("0.10")
-                    referrer = User.objects.select_for_update().get(pk=user.referred_by_id)
-                    referrer.referral_balance += referral_bonus
-                    referrer.save(update_fields=["referral_balance"])
-
-            user.last_collected_at = now
-            user.save(update_fields=["balance", "last_collected_at"])
+            earned = settle_earnings(user, now)
 
         return Response({
             "message": "Collected!",
@@ -320,9 +379,9 @@ def collect_gold(request):
 
     except User.DoesNotExist:
         return Response({"error": "User not found"}, status=404)
-    except Exception as e:
-        print(f"ERROR in collect_gold: {e}")
-        return Response({"error": str(e)}, status=500)
+    except Exception:
+        logger.exception("collect_gold failed for telegram_id=%s", telegram_id)
+        return Response({"error": "حدث خطأ غير متوقع، حاول مرة أخرى"}, status=500)
     
 
 
@@ -340,31 +399,37 @@ def upgrade_worker(request):
         return Response({"error": "Missing data"}, status=400)
 
     try:
-        user = User.objects.get(telegram_id=telegram_id)
-        worker = Worker.objects.get(id=worker_id)
-        
-        user_worker, created = UserWorker.objects.get_or_create(user=user, worker=worker)
-        
-        current_level = user_worker.level
-        price = worker.base_price * (Decimal('1.5') ** current_level)
+        with transaction.atomic():
+            user = User.objects.select_for_update().get(telegram_id=telegram_id)
+            worker = Worker.objects.get(id=worker_id)
 
-        if user.balance >= price:
+            user_worker, created = UserWorker.objects.select_for_update().get_or_create(
+                user=user, worker=worker
+            )
+
+            # نقفل أرباح الفترة اللي فاتت بسرعة الترقية القديمة قبل ما نطقّي السرعه
+            settle_earnings(user, timezone.now())
+
+            current_level = user_worker.level
+            price = worker.base_price * (Decimal('1.5') ** current_level)
+
+            if user.balance < price:
+                return Response({"error": "Insufficient balance"}, status=400)
+
             user.balance -= price
             user_worker.level += 1
-            user.save()
-            user_worker.save()
+            user.save(update_fields=["balance"])
+            user_worker.save(update_fields=["level"])
 
             # احسب الإنتاج الجديد (بعد الترقية)
             production = calculate_user_production(user)
 
-            return Response({
-                "message": "Upgraded!", 
-                "new_balance": float(user.balance),
-                "new_level": user_worker.level,
-                "production": production 
-            })
-        else:
-            return Response({"error": "Insufficient balance"}, status=400)
+        return Response({
+            "message": "Upgraded!", 
+            "new_balance": float(user.balance),
+            "new_level": user_worker.level,
+            "production": production 
+        })
             
     except (User.DoesNotExist, Worker.DoesNotExist):
         return Response({"error": "User or Worker not found"}, status=404)
@@ -402,6 +467,10 @@ def claim_task_reward(request):
 
     if not task_name:
         return Response({"error": "Missing data"}, status=400)
+
+    # بنرفض أي اسم مهمة مش معروف عشان محدش يقدر يطبع رصيد بأسماء عشوائية
+    if task_name not in ALLOWED_TASK_NAMES:
+        return Response({"error": "مهمة غير معروفة"}, status=400)
 
     channel_tasks = {
         "channel_1": settings.TELEGRAM_TASK_CHANNEL_1,
@@ -471,19 +540,20 @@ def verify_wallet(request):
         return Response({"error": "Missing data"}, status=400)
 
     try:
-        user = User.objects.get(telegram_id=telegram_id)
-        if str(wallet_address).startswith("0:"):
-            try:
-                from tonsdk.utils import Address
-                addr = Address(wallet_address)
-                friendly_addr = addr.to_string(is_user_friendly=True, is_bounceable=False, is_url_safe=True)
-                user.wallet_address = friendly_addr
-            except:
+        with transaction.atomic():
+            user = User.objects.select_for_update().get(telegram_id=telegram_id)
+            if str(wallet_address).startswith("0:"):
+                try:
+                    from tonsdk.utils import Address
+                    addr = Address(wallet_address)
+                    friendly_addr = addr.to_string(is_user_friendly=True, is_bounceable=False, is_url_safe=True)
+                    user.wallet_address = friendly_addr
+                except Exception:
+                    user.wallet_address = wallet_address
+            else:
                 user.wallet_address = wallet_address
-        else:
-            user.wallet_address = wallet_address
-        user.is_wallet_verified = True # بنوثق المحفظة
-        user.save()
+            user.is_wallet_verified = True # بنوثق المحفظة
+            user.save(update_fields=["wallet_address", "is_wallet_verified"])
 
         return Response({"message": "Wallet Verified!", "is_wallet_verified": True})
     except User.DoesNotExist:
@@ -498,10 +568,11 @@ def disconnect_wallet(request):
     if not telegram_id:
         return Response({"error": "Unauthorized"}, status=401)
     try:
-        user = User.objects.get(telegram_id=telegram_id)
-        user.wallet_address = None
-        user.is_wallet_verified = False
-        user.save()
+        with transaction.atomic():
+            user = User.objects.select_for_update().get(telegram_id=telegram_id)
+            user.wallet_address = None
+            user.is_wallet_verified = False
+            user.save(update_fields=["wallet_address", "is_wallet_verified"])
         return Response({"message": "Wallet Disconnected!"})
     except User.DoesNotExist:
         return Response({"error": "User not found"}, status=404)
@@ -522,80 +593,80 @@ def watch_ad(request):
         return Response({"error": "Missing data"}, status=400)
 
     try:
-        user = User.objects.get(telegram_id=telegram_id)
-        now = timezone.now()
-        today = now.date()
-
-        # --- 1. إعلانات التفعيل اليومي ---
-        if ad_type == 'activation':
-            if user.last_activation_date != today:
-                user.ads_watched_today = 0
-                user.last_activation_date = today
-
-            if user.ads_watched_today < 3:
-                user.ads_watched_today += 1
-                if user.ads_watched_today >= 3:
-                    user.last_activation_date = timezone.now().date()
-                reward = Decimal('0')
-                user.save()
-                return Response({
-                    "message": "Ad Watched!", 
-                    "new_balance": float(user.balance),
-                    "watched_count": user.ads_watched_today,
-                    "reward": float(reward)
-                })
-            else:
-                return Response({"error": "لقد أكملت إعلانات التفعيل اليوم"}, status=400)
-
-        # --- 2. إعلانات المضاعفة (Boost) ---
-                # --- 2. إعلانات المضاعفة (Boost) ---
-        elif ad_type == 'boost':
+        with transaction.atomic():
+            user = User.objects.select_for_update().get(telegram_id=telegram_id)
             now = timezone.now()
-            
-            # 1. لو البوست شغال حالياً (يعني الساعة لسه مخلصتش)
-            if user.last_boost_time and user.boost_multiplier > 1.0:
-                boost_end_time = user.last_boost_time + timedelta(hours=1)
-                if now < boost_end_time:
-                    return Response({"error": "البوست شغال بالفعل. استنى لما يخلص."}, status=400)
+            today = now.date()
+
+            # --- 1. إعلانات التفعيل اليومي ---
+            if ad_type == 'activation':
+                if user.last_activation_date != today:
+                    user.ads_watched_today = 0
+                    user.last_activation_date = today
+
+                if user.ads_watched_today < 3:
+                    user.ads_watched_today += 1
+                    if user.ads_watched_today >= 3:
+                        user.last_activation_date = now.date()
+                    reward = Decimal('0')
+                    user.save(update_fields=["ads_watched_today", "last_activation_date"])
+                    return Response({
+                        "message": "Ad Watched!", 
+                        "new_balance": float(user.balance),
+                        "watched_count": user.ads_watched_today,
+                        "reward": float(reward)
+                    })
                 else:
-                    # لو خلصت الساعة، بنلغي البوست ونرجع السرعة الطبيعية
-                    user.boost_multiplier = 1.0
-                    user.save()
+                    return Response({"error": "لقد أكملت إعلانات التفعيل اليوم"}, status=400)
 
-            # بنشوف وقت بداية الدورة القديمة (لو موجود)
-            if user.boost_ads_watched >= 5:
-                # معناها إنه خلص الـ 5 إعلانات، ومحتاج يستنى 8 ساعات من وقت بداية الدورة
-                if user.last_boost_time:
-                    # بنحسب وقت انتهاء الاستراحة (8 ساعات من بداية الدورة)
-                    cooldown_end = user.last_boost_time + timedelta(hours=8)
-                    if now < cooldown_end:
-                        time_left_cooldown = int((cooldown_end - now).total_seconds())
-                        return Response({"error": f"لازم تستنى {time_left_cooldown} ثانية."}, status=400)
+            # --- 2. إعلانات المضاعفة (Boost) ---
+            elif ad_type == 'boost':
+                # 1. لو البوست شغال حالياً (يعني الساعة لسه مخلصتش)
+                if user.last_boost_time and user.boost_multiplier > 1.0:
+                    boost_end_time = user.last_boost_time + timedelta(hours=1)
+                    if now < boost_end_time:
+                        return Response({"error": "البوست شغال بالفعل. استنى لما يخلص."}, status=400)
                     else:
-                        # خلصت الـ 8 ساعات، بنصفر العداد عشان يبدأ دورة جديدة
-                        user.boost_ads_watched = 0
-                        user.last_boost_time = now
-                        user.save()
+                        # لو خلصت الساعة، بنلغي البوست ونرجع السرعة الطبيعية
+                        user.boost_multiplier = 1.0
+                        user.save(update_fields=["boost_multiplier"])
 
-            # 3. لو العداد أقل من 5، بنزوده
-            if user.boost_ads_watched < 5:
-                user.boost_ads_watched += 1
-                user.save()
-                return Response({
-                    "message": "Boost Ad Watched!",
-                    "watched_count": user.boost_ads_watched
-                })
-            else:
-                # 4. لو وصل 5، بنديله المضاعف
-                user.boost_multiplier = Decimal('2.00')
-                user.last_boost_time = now
-                user.save()
-                return Response({
-                    "message": "Boost Activated!",
-                    "boost_multiplier": float(user.boost_multiplier)
-                })
+                # بنشوف وقت بداية الدورة القديمة (لو موجود)
+                if user.boost_ads_watched >= 5:
+                    # معناها إنه خلص الـ 5 إعلانات، ومحتاج يستنى 8 ساعات من وقت بداية الدورة
+                    if user.last_boost_time:
+                        # بنحسب وقت انتهاء الاستراحة (8 ساعات من بداية الدورة)
+                        cooldown_end = user.last_boost_time + timedelta(hours=8)
+                        if now < cooldown_end:
+                            time_left_cooldown = int((cooldown_end - now).total_seconds())
+                            return Response({"error": f"لازم تستنى {time_left_cooldown} ثانية."}, status=400)
+                        else:
+                            # خلصت الـ 8 ساعات، بنصفر العداد عشان يبدأ دورة جديدة
+                            user.boost_ads_watched = 0
+                            user.last_boost_time = now
+                            user.save(update_fields=["boost_ads_watched", "last_boost_time"])
 
-        return Response({"error": "Invalid ad type"}, status=400)
+                # 3. لو العداد أقل من 5، بنزوده
+                if user.boost_ads_watched < 5:
+                    user.boost_ads_watched += 1
+                    user.save(update_fields=["boost_ads_watched"])
+                    return Response({
+                        "message": "Boost Ad Watched!",
+                        "watched_count": user.boost_ads_watched
+                    })
+                else:
+                    # 4. لو وصل 5، بنديله المضاعف
+                    # نقفل أرباح الفترة اللي فاتت قبل ما المضاعف يتفعّل
+                    settle_earnings(user, now)
+                    user.boost_multiplier = Decimal('2.00')
+                    user.last_boost_time = now
+                    user.save(update_fields=["boost_multiplier", "last_boost_time"])
+                    return Response({
+                        "message": "Boost Activated!",
+                        "boost_multiplier": float(user.boost_multiplier)
+                    })
+
+            return Response({"error": "Invalid ad type"}, status=400)
     except User.DoesNotExist:
         return Response({"error": "User not found"}, status=404)
 
@@ -619,18 +690,19 @@ def exchange_currency(request):
         if tac_amount < 920:
             return Response({"error": "الحد الأدنى 920 TAC"}, status=400)
 
-        user = User.objects.get(telegram_id=telegram_id)
-        
-        if user.balance < tac_amount:
-            return Response({"error": "رصيدك غير كافي"}, status=400)
+        with transaction.atomic():
+            user = User.objects.select_for_update().get(telegram_id=telegram_id)
 
-        # حساب الـ USDT (كل 920 TAC = 1 USDT)
-        usdt_added = tac_amount / Decimal('920.0')
+            if user.balance < tac_amount:
+                return Response({"error": "رصيدك غير كافي"}, status=400)
 
-        # خصم الـ TAC وإضافة الـ USDT
-        user.balance -= tac_amount
-        user.usdt_balance += usdt_added
-        user.save()
+            # حساب الـ USDT (كل 920 TAC = 1 USDT)
+            usdt_added = tac_amount / Decimal('920.0')
+
+            # خصم الـ TAC وإضافة الـ USDT
+            user.balance -= tac_amount
+            user.usdt_balance += usdt_added
+            user.save(update_fields=["balance", "usdt_balance"])
 
         return Response({
             "message": "Exchange Successful!",
@@ -641,8 +713,9 @@ def exchange_currency(request):
 
     except User.DoesNotExist:
         return Response({"error": "User not found"}, status=404)
-    except Exception as e:
-        return Response({"error": str(e)}, status=500)
+    except Exception:
+        logger.exception("exchange_currency failed for telegram_id=%s", telegram_id)
+        return Response({"error": "حدث خطأ غير متوقع، حاول مرة أخرى"}, status=500)
 
 
 @api_view(['POST'])
@@ -654,19 +727,20 @@ def collect_referral_gold(request):
         return Response({"error": "Unauthorized"}, status=401)
         
     try:
-        user = User.objects.get(telegram_id=telegram_id)
-        
-        # بنشوف لو فيه رصيد إحالة متاح
-        if user.referral_balance <= 0:
-            return Response({"error": "لا يوجد رصيد إحالة للسحب"}, status=400)
-            
-        amount_to_collect = user.referral_balance
-        
-        # بنضيف رصيد الإحالة للرصيد الأساسي
-        user.balance += amount_to_collect
-        user.referral_balance = 0 # بنصفر رصيد الإحالة
-        user.save()
-        
+        with transaction.atomic():
+            user = User.objects.select_for_update().get(telegram_id=telegram_id)
+
+            # بنشوف لو فيه رصيد إحالة متاح
+            if user.referral_balance <= 0:
+                return Response({"error": "لا يوجد رصيد إحالة للسحب"}, status=400)
+
+            amount_to_collect = user.referral_balance
+
+            # بنضيف رصيد الإحالة للرصيد الأساسي
+            user.balance += amount_to_collect
+            user.referral_balance = 0 # بنصفر رصيد الإحالة
+            user.save(update_fields=["balance", "referral_balance"])
+
         return Response({
             "message": "Referral Gold Collected!",
             "new_balance": float(user.balance),
@@ -701,6 +775,25 @@ def request_withdraw(request):
             if withdraw_amount < 5:
                 return Response({"error": "الحد الأدنى للسحب 5 USDT"}, status=400)
 
+            # قاعدة السحب: طلب واحد فقط لكل مستخدم في اليوم (بتوقيت القاهرة)
+            cairo_now = timezone.now().astimezone(CAIRO_TZ)
+            day_start_local = cairo_now.replace(hour=0, minute=0, second=0, microsecond=0)
+            day_end_local = day_start_local + timedelta(days=1)
+            already_requested_today = WithdrawRequest.objects.filter(
+                user=user,
+                created_at__gte=day_start_local,
+                created_at__lt=day_end_local,
+            ).exists()
+            if already_requested_today:
+                next_request_text = day_end_local.strftime("%Y-%m-%d %H:%M")
+                return Response({
+                    "error": (
+                        "مسموح بطلب سحب واحد فقط في اليوم. "
+                        f"يمكنك المحاولة مرة أخرى بعد {next_request_text} بتوقيت القاهرة."
+                    ),
+                    "next_request_at": day_end_local.isoformat(),
+                }, status=400)
+
             if user.usdt_balance < withdraw_amount:
                 return Response({"error": "رصيدك غير كافي"}, status=400)
             if user.referrals.count() < 3:
@@ -720,15 +813,10 @@ def request_withdraw(request):
 
         thread_admin = threading.Thread(
             target=send_admin_notification,
-            args=(username, float(withdraw_amount), wallet_address)
+            args=(username, float(withdraw_amount), wallet_address),
+            daemon=True,
         )
         thread_admin.start()
-
-        thread_public = threading.Thread(
-            target=send_public_announcement,
-            args=(username, float(withdraw_amount), wallet_address)
-        )
-        thread_public.start()
 
         return Response({
             "message": "Withdraw Request Submitted!",
@@ -737,8 +825,9 @@ def request_withdraw(request):
 
     except User.DoesNotExist:
         return Response({"error": "User not found"}, status=404)
-    except Exception as e:
-        return Response({"error": str(e)}, status=500)
+    except Exception:
+        logger.exception("request_withdraw failed for telegram_id=%s", telegram_id)
+        return Response({"error": "حدث خطأ غير متوقع، حاول مرة أخرى"}, status=500)
     
 
 
@@ -770,6 +859,67 @@ def get_withdraw_history(request):
     except User.DoesNotExist:
         return Response({"error": "User not found"}, status=404)
 
+
+
+def _escape_markdown(value):
+    """يهرب حروف Markdown عشان اسم المستخدم ما يبوظش رسالة تيليجرام."""
+    text = str(value or "")
+    for char in ("\\", "_", "*", "`", "["):
+        text = text.replace(char, f"\\{char}")
+    return text
+
+
+def complete_withdraw_request(withdraw_request, payment_reference=""):
+    """
+    بيعلّم الطلب كمدفوع مرة واحدة بس، وبعد كده بيبعت إعلان القناة.
+    العملية نفسها ذرّية؛ الإعلان بيتحاول يتنفذ بعد نجاح الحفظ.
+    """
+    with transaction.atomic():
+        request_row = WithdrawRequest.objects.select_for_update().get(
+            pk=withdraw_request.pk
+        )
+        if request_row.status != "pending":
+            return False
+
+        request_row.status = "completed"
+        if payment_reference:
+            request_row.note = f"مرجع الدفع: {payment_reference}"
+        request_row.save(update_fields=["status", "note"])
+
+        username = request_row.user.username
+        amount = float(request_row.amount)
+        wallet_address = request_row.wallet_address
+
+    thread = threading.Thread(
+        target=send_public_announcement,
+        args=(username, amount, wallet_address),
+        daemon=True,
+    )
+    thread.start()
+    return True
+
+
+def reject_withdraw_request(withdraw_request, reason=""):
+    """بيرفض الطلب ويرجع قيمته بالـ TAC للمستخدم مرة واحدة بس جوه transaction."""
+    with transaction.atomic():
+        request_row = WithdrawRequest.objects.select_for_update().get(
+            pk=withdraw_request.pk
+        )
+        if request_row.status != "pending":
+            return False
+
+        user = User.objects.select_for_update().get(pk=request_row.user_id)
+        refund_tac = (request_row.amount * WITHDRAW_TAC_PER_USDT).quantize(
+            Decimal("0.00000001")
+        )
+        user.balance += refund_tac
+        user.save(update_fields=["balance"])
+
+        request_row.status = "rejected"
+        if reason:
+            request_row.note = reason
+        request_row.save(update_fields=["status", "note"])
+    return True
 
 
 def send_withdraw_announcement(username, amount, wallet_address):
@@ -808,9 +958,9 @@ def send_admin_notification(username, amount, wallet_address):
     message = f"""
 🔔 **طلب سحب جديد!**
 
-👤 **المستخدم:** {username}
+👤 **المستخدم:** {_escape_markdown(username)}
 💰 **المبلغ:** {amount:.2f} USDT
-💳 **المحفظة:** `{wallet_address}`
+💳 **المحفظة:** `{_escape_markdown(wallet_address)}`
 
 ⏳ **الحالة:** قيد المراجعة
     """
@@ -821,15 +971,15 @@ def send_admin_notification(username, amount, wallet_address):
         "parse_mode": "Markdown"
     }
     try:
-        requests.post(url, json=payload)
-    except Exception as e:
-        print(f"Error sending admin notification: {e}")
+        requests.post(url, json=payload, timeout=10)
+    except Exception:
+        logger.exception("Failed to send admin withdrawal notification")
 
 
 
 
 
-# 2. دالة إرسال إعلان لقناة الجمهور (بعد وقت عشوائي)
+# 2. دالة إرسال إعلان لقناة الجمهور (بتتنادى بعد ما الأدمن يعلّم الطلب كمدفوع)
 def send_public_announcement(username, amount, wallet_address):
     # تأخير عشوائي (3 لـ 10 دقايق)
     delay = random.randint(180, 600)
@@ -838,9 +988,9 @@ def send_public_announcement(username, amount, wallet_address):
     message = f"""
 🎉 **تم صرف أرباح جديدة!** 🎉
 
-👤 **المستخدم:** {username}
+👤 **المستخدم:** {_escape_markdown(username)}
 💰 **المبلغ:** {amount:.2f} USDT
-💳 **المحفظة:** `{wallet_address[:10]}...{wallet_address[-5:]}`
+💳 **المحفظة:** `{_escape_markdown(wallet_address[:10])}...{_escape_markdown(wallet_address[-5:])}`
 
 🚀 **كن أنت التالي!** العب واجمع وسحب أرباحك الآن.
     """
@@ -851,9 +1001,9 @@ def send_public_announcement(username, amount, wallet_address):
         "parse_mode": "Markdown"
     }
     try:
-        requests.post(url, json=payload)
-    except Exception as e:
-        print(f"Error sending public announcement: {e}")
+        requests.post(url, json=payload, timeout=10)
+    except Exception:
+        logger.exception("Failed to send public withdrawal announcement")
 
 
 
@@ -877,6 +1027,17 @@ def _telegram_start_payload(text):
 @permission_classes([AllowAny])
 def telegram_webhook(request):
     """يستقبل POST من تيليجرام. /start ref_<id> يتخزن في PendingReferral ويرجع 200."""
+    configured_secret = getattr(settings, "TELEGRAM_WEBHOOK_SECRET", None)
+    if configured_secret:
+        received_secret = request.headers.get("X-Telegram-Bot-Api-Secret-Token", "")
+        if not hmac.compare_digest(str(received_secret), str(configured_secret)):
+            logger.warning("Rejected Telegram webhook request with invalid secret token")
+            return Response({"ok": False}, status=403)
+    else:
+        logger.warning(
+            "TELEGRAM_WEBHOOK_SECRET is not configured; webhook requests are unauthenticated"
+        )
+
     try:
         message = request.data.get("message") or request.data.get("edited_message") or {}
         if isinstance(message, dict):
@@ -892,7 +1053,7 @@ def telegram_webhook(request):
                         defaults={"referral_id": referrer_id},
                     )
     except Exception:
-        pass
+        logger.exception("telegram_webhook failed to process update")
     return Response({"ok": True}, status=200)
 
 
@@ -996,13 +1157,18 @@ def daily_check_in(request):
                 if dragon_worker:
                     uw, created = UserWorker.objects.get_or_create(user=user, worker=dragon_worker)
                     uw.level += 1
-                    uw.save()
+                    uw.save(update_fields=["level"])
                     reward_message = "🎉 مبروك! حصلت على عامل Dragon + 1 TAC"
                     user.has_claimed_30_day_gift = True
 
             # نضيف الـ 1 TAC ونحفظ مرة واحدة
             user.balance += Decimal('1.0')
-            user.save()
+            user.save(update_fields=[
+                "balance",
+                "daily_streak",
+                "last_daily_check",
+                "has_claimed_30_day_gift",
+            ])
 
         return Response({
             "message": "Check-in Successful!",

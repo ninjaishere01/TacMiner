@@ -28,6 +28,16 @@ function resolveTelegramUsername(user) {
   return fullName || user.username || "new user";
 }
 
+// تهريب أي نص جاي من المستخدم قبل إدخاله في innerHTML
+function escapeHtml(value) {
+  return String(value == null ? "" : value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 let username = resolveTelegramUsername(telegramUser);
 
 function applyTelegramName() {

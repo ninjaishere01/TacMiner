@@ -149,29 +149,28 @@ function createFlyingCoins() {
 
 // 6. جمع الجولد
 function collectGold() {
-  let storage = parseFloat(localStorage.getItem("mineStorage")) || 0;
+  // السيرفر هو اللي بيحدد لو فيه أرباح تتجمع أو لأ
+  fetch("/api/collect/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      initData: window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.initData : "",
+      referral_id: referralId,
+    }),
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.message === "Collected!") {
+        const collected = Number(data.collected);
+        const collectedAmount = Number.isFinite(collected) ? collected : 0;
+        localStorage.setItem("mineStorage", 0);
+        document.getElementById("current-gold").innerText = "0.0000";
 
-  if (storage > 0) {
-    fetch("/api/collect/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        initData: window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.initData : "",
-        referral_id: referralId,
-      }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.message === "Collected!") {
-          const collected = Number(data.collected);
-          const collectedAmount = Number.isFinite(collected) ? collected : storage;
-          localStorage.setItem("mineStorage", 0);
-          document.getElementById("current-gold").innerText = "0.0000";
+        updateBalanceUI(data.new_balance);
 
+        if (collectedAmount > 0) {
           playSound("coins.wav");
           createFlyingCoins();
-
-          updateBalanceUI(data.new_balance);
 
           setTimeout(() => {
             Swal.fire({
@@ -186,22 +185,34 @@ function collectGold() {
               },
             });
           }, 500);
+        } else {
+          Swal.fire({
+            title: "المخزن فاضي!",
+            text: "استنى شوية العمال يجمعوا جولد أو شوف إعلان.",
+            icon: "error",
+            confirmButtonText: "حسناً",
+            customClass: {
+              popup: "swal-custom-popup",
+              title: "swal-custom-title",
+              confirmButton: "swal-confirm-btn",
+            },
+          });
         }
-      })
-      .catch((err) => console.error(err));
-  } else {
-    Swal.fire({
-      title: "المخزن فاضي!",
-      text: "استنى شوية العمال يجمعوا جولد أو شوف إعلان.",
-      icon: "error",
-      confirmButtonText: "حسناً",
-      customClass: {
-        popup: "swal-custom-popup",
-        title: "swal-custom-title",
-        confirmButton: "swal-confirm-btn",
-      },
-    });
-  }
+      } else if (data.error) {
+        Swal.fire({
+          title: "تنبيه",
+          text: data.error,
+          icon: "info",
+          confirmButtonText: "حسناً",
+          customClass: {
+            popup: "swal-custom-popup",
+            title: "swal-custom-title",
+            confirmButton: "swal-confirm-btn",
+          },
+        });
+      }
+    })
+    .catch((err) => console.error(err));
 }
 
 // 7. محاكاة زيادة الجولد (التعدين)
@@ -291,7 +302,7 @@ function loadLeaderboard() {
                             <i class="fa-solid fa-user text-info"></i>
                         </div>
                         <div class="leader-info">
-                            <span class="leader-name" style="font-size: 12px;">${player.username}</span>
+                            <span class="leader-name" style="font-size: 12px;">${escapeHtml(player.username)}</span>
                         </div>
                         <div class="leader-score" style="font-size: 11px;">
                             <i class="fa-solid fa-coins text-warning"></i> ${player.balance.toLocaleString("en-US")}
