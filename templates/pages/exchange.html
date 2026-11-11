@@ -206,11 +206,10 @@
         // بنستخدم currentBalance بدل data.balance
         if (gold >= 920 && gold <= currentBalance) {
           confirmBtn.disabled = false;
-          confirmBtn.style.background =
-            "linear-gradient(to bottom, #4fc3f7, #0288d1)";
+          confirmBtn.style.background = "";
         } else {
           confirmBtn.disabled = true;
-          confirmBtn.style.background = "#999";
+          confirmBtn.style.background = "";
         }
       }
 
@@ -261,8 +260,7 @@
                 document.getElementById("gold-input").value = "";
                 document.getElementById("usdt-output").innerText = "0.00";
                 document.getElementById("confirm-btn").disabled = true;
-                document.getElementById("confirm-btn").style.background =
-                  "#999";
+                document.getElementById("confirm-btn").style.background = "";
 
                 Swal.fire({
                   title: "تم التبديل بنجاح!",

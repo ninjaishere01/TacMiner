@@ -1,330 +1,499 @@
-.modern-referral-card {
-  background: linear-gradient(145deg, #1e253a, #121420);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
-  padding: 25px 20px;
-  box-shadow:
-    0 10px 30px rgba(0, 0, 0, 0.5),
-    inset 0 0 20px rgba(255, 255, 255, 0.02);
-  margin-bottom: 20px;
+/* =========================================================
+   REFERRAL — invite hero, stats, milestones, friends
+   ========================================================= */
+
+.mine-container > h4 {
   position: relative;
+  margin-bottom: 20px !important;
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--text) !important;
+  text-align: start !important;
+}
+
+.mine-container > h4::after {
+  content: "";
+  display: block;
+  width: 46px;
+  height: 3px;
+  margin-top: 8px;
+  border-radius: 99px;
+  background: var(--gold-grad);
+  box-shadow: 0 0 14px rgba(255, 199, 90, 0.7);
+}
+
+/* ---------------- invite hero ---------------- */
+
+.modern-referral-card {
+  position: relative;
+  margin-bottom: 18px;
+  padding: 24px 18px 18px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(
+    160deg,
+    rgba(255, 199, 90, 0.14) 0%,
+    rgba(34, 29, 58, 0.9) 38%,
+    rgba(12, 17, 30, 0.97) 100%
+  );
+  border: 1px solid rgba(255, 199, 90, 0.3);
+  box-shadow: var(--shadow-lg), 0 0 50px -26px rgba(240, 165, 0, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
   overflow: hidden;
 }
+
 .modern-referral-card::before {
   content: "";
   position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
+  top: -90px;
+  right: -70px;
+  width: 220px;
+  height: 220px;
   background: radial-gradient(
     circle,
-    rgba(0, 210, 255, 0.1) 0%,
-    transparent 60%
+    rgba(183, 167, 255, 0.22),
+    transparent 65%
   );
-  z-index: 0;
   pointer-events: none;
 }
+
+.modern-referral-card::after {
+  content: "";
+  position: absolute;
+  bottom: -80px;
+  left: -60px;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(
+    circle,
+    rgba(70, 216, 255, 0.14),
+    transparent 66%
+  );
+  pointer-events: none;
+}
+
 .gift-icon-wrapper {
-  width: 70px;
-  height: 70px;
-  background: rgba(255, 202, 40, 0.1);
-  border: 2px solid rgba(255, 202, 40, 0.3);
-  border-radius: 50%;
+  position: relative;
+  z-index: 1;
+  width: 84px;
+  height: 84px;
+  margin: 0 auto 14px;
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: 0 auto 15px auto;
-  font-size: 30px;
-  color: #ffca28;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 50% 30%,
+    rgba(255, 199, 90, 0.28),
+    rgba(10, 15, 26, 0.9) 70%
+  );
+  border: 1px solid rgba(255, 199, 90, 0.5);
+  box-shadow: 0 0 0 8px rgba(255, 199, 90, 0.07),
+    0 20px 40px -22px rgba(240, 165, 0, 0.95);
+}
+
+.gift-icon-wrapper img {
+  width: 62px;
+  height: 62px;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.55));
+}
+
+.modern-referral-card h5 {
   position: relative;
   z-index: 1;
-  box-shadow: 0 0 15px rgba(255, 202, 40, 0.2);
+  font-weight: 800 !important;
+  color: var(--text) !important;
 }
+
+.modern-referral-card p.small,
+.modern-referral-card p.text-muted {
+  position: relative;
+  z-index: 1;
+  color: var(--muted) !important;
+}
+
 .modern-input-group {
-  display: flex;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 5px;
   position: relative;
   z-index: 1;
+  display: flex;
+  gap: 6px;
+  padding: 5px;
+  border-radius: 14px;
+  background: rgba(4, 7, 13, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6);
 }
+
 .modern-input-group input {
-  background: transparent;
-  border: none;
-  color: #fff;
-  font-weight: bold;
-  font-size: 13px;
   width: 100%;
-  padding: 8px 12px;
-  outline: none;
-}
-.btn-modern-copy {
-  background: linear-gradient(to bottom, #00d2ff, #0052ff);
+  padding: 9px 12px;
   border: none;
-  color: #fff;
-  font-weight: 900;
-  border-radius: 8px;
-  box-shadow: 0 3px 0 #003399;
-  padding: 8px 20px;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-num);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.modern-input-group input::placeholder {
+  color: #5f6d8c;
+}
+
+.btn-modern-copy {
+  flex-shrink: 0;
+  padding: 9px 18px;
+  border: none;
+  border-radius: 11px;
+  background: var(--gold-grad);
+  color: #10141f;
+  font-size: 12px;
+  font-weight: 800;
   white-space: nowrap;
-  transition: all 0.1s;
+  box-shadow: 0 10px 20px -12px rgba(240, 165, 0, 0.95),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
-.btn-modern-copy:active {
-  transform: translateY(3px);
-  box-shadow: 0 0 0 #003399;
+
+.btn-modern-copy:hover {
+  filter: brightness(1.06);
+  color: #10141f;
 }
+
+/* ---------------- stats ---------------- */
+
 .stat-card-modern {
-  background: rgba(26, 30, 46, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 15px;
-  padding: 15px;
   display: flex;
   align-items: center;
   gap: 12px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-  transition: transform 0.2s;
+  height: 100%;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  background: var(--glass-grad);
+  border: 1px solid var(--stroke);
+  box-shadow: 0 18px 38px -30px rgba(0, 0, 0, 0.95),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition: transform 0.22s ease, border-color 0.22s ease;
 }
+
 .stat-card-modern:hover {
-  transform: translateY(-3px);
-  border-color: rgba(255, 202, 40, 0.3);
+  transform: translateY(-2px);
+  border-color: rgba(255, 199, 90, 0.25);
 }
+
 .stat-icon-modern {
-  width: 45px;
-  height: 45px;
-  border-radius: 12px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 20px;
-}
-.bg-blue-light {
-  background: rgba(0, 210, 255, 0.1);
-  color: var(--cyan);
-  border: 1px solid rgba(0, 210, 255, 0.2);
-}
-.bg-gold-light {
-  background: rgba(255, 202, 40, 0.1);
-  color: #ffca28;
-  border: 1px solid rgba(255, 202, 40, 0.2);
-}
-.stat-info-modern h3 {
-  font-size: 20px;
-  font-weight: 900;
-  color: #fff;
-  margin: 0;
-  line-height: 1.2;
-}
-.stat-info-modern small {
-  font-size: 11px;
-  color: #8a95b5;
-  font-weight: bold;
-}
-.text-cyan {
-  color: var(--cyan);
-}
-.friends-container {
-  background: rgba(26, 30, 46, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 15px;
-  padding: 15px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-}
-.friends-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.friend-item {
-  display: flex;
-  align-items: center;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  padding: 10px;
-}
-.friend-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 18px;
-  margin-right: 12px;
+  width: 44px;
+  height: 44px;
   flex-shrink: 0;
-}
-.friend-info {
   display: flex;
-  flex-direction: column;
-  flex: 1;
-}
-.friend-name {
-  color: #fff;
-  font-weight: bold;
-  font-size: 14px;
-}
-.friend-status {
-  font-size: 11px;
-  font-weight: bold;
-  display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 4px;
+  border-radius: 13px;
+  font-size: 18px;
+}
+
+.bg-blue-light {
+  color: var(--cyan-2);
+  background: rgba(70, 216, 255, 0.1);
+  border: 1px solid rgba(70, 216, 255, 0.25);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 20px -10px rgba(70, 216, 255, 0.8);
+}
+
+.bg-gold-light {
+  color: var(--gold-2);
+  background: rgba(255, 199, 90, 0.1);
+  border: 1px solid rgba(255, 199, 90, 0.28);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 20px -10px rgba(255, 199, 90, 0.8);
+}
+
+.stat-info-modern {
+  min-width: 0;
+}
+
+.stat-info-modern h3 {
+  margin: 0;
+  font-family: var(--font-num);
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--text);
+}
+
+.stat-info-modern h3.text-warning {
+  color: var(--gold-2) !important;
+}
+
+.stat-info-modern small {
+  display: block;
   margin-top: 2px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
 }
-.friend-earnings {
-  text-align: left;
-  display: flex;
-  flex-direction: column;
-}
-.earn-val {
-  color: #ffca28;
-  font-weight: 900;
-  font-size: 15px;
-}
-.friend-earnings small {
-  color: #8a95b5;
-  font-size: 9px;
-}
+
 .btn-referral-collect {
-  background: linear-gradient(to bottom, #ffca28, #f57f17);
-  border: 1px solid #e65100;
-  color: var(--wood-text-dark);
-  font-weight: 900;
+  margin-top: 10px !important;
+  padding: 8px 0 !important;
+  border: none;
+  border-radius: 11px;
+  background: var(--gold-grad);
+  color: #10141f;
   font-size: 12px;
-  border-radius: 6px;
-  padding: 6px 0;
-  box-shadow: 0 3px 0 #b71c1c;
-  transition: all 0.1s;
-}
-.btn-referral-collect:active {
-  transform: translateY(3px);
-  box-shadow: 0 0 0 #b71c1c;
+  font-weight: 800;
+  box-shadow: 0 10px 20px -12px rgba(240, 165, 0, 0.95),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
+.btn-referral-collect:hover {
+  filter: brightness(1.06);
+}
 
-
-/* =========================================
-   تصميم مكافآت الدعوة (Milestones)
-   ========================================= */
+/* ---------------- milestones ---------------- */
 
 .milestones-container {
-  background: rgba(26, 30, 46, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 15px;
-  padding: 15px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  background: var(--glass-grad);
+  border: 1px solid var(--stroke);
+  box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.milestones-container > h5 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px !important;
+  font-size: 15px !important;
+  font-weight: 800 !important;
+  color: var(--text) !important;
 }
 
 .milestones-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 9px;
 }
 
 .milestone-card {
   display: flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  padding: 10px 12px;
-  transition: all 0.3s ease;
+  gap: 12px;
+  padding: 11px 12px;
+  border-radius: 14px;
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.05),
+    rgba(255, 255, 255, 0.012)
+  );
+  border: 1px solid var(--stroke);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease,
+    transform 0.2s ease;
 }
 
-/* شكل الكارت لو المكافأة متاحة (مستحقة) */
 .milestone-card.claimable {
-  border-color: rgba(255, 202, 40, 0.5);
-  background: rgba(255, 202, 40, 0.05);
-  box-shadow: 0 0 10px rgba(255, 202, 40, 0.1);
+  border-color: rgba(255, 199, 90, 0.45);
+  background: linear-gradient(
+    120deg,
+    rgba(255, 199, 90, 0.13),
+    rgba(255, 199, 90, 0.02)
+  );
+  box-shadow: 0 0 30px -16px rgba(255, 199, 90, 0.95);
 }
 
-/* شكل الكارت لو المكافأة تم استلامها */
 .milestone-card.claimed {
-  opacity: 0.5;
+  opacity: 0.45;
   background: transparent;
-  border-color: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.04);
 }
 
 .milestone-icon {
   width: 40px;
   height: 40px;
-  background: rgba(0, 210, 255, 0.1);
-  border: 1px solid rgba(0, 210, 255, 0.2);
-  border-radius: 10px;
+  flex-shrink: 0;
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 18px;
-  color: #00d2ff;
-  margin-right: 12px;
-  flex-shrink: 0;
+  border-radius: 12px;
+  font-size: 16px;
+  color: var(--cyan-2);
+  background: rgba(70, 216, 255, 0.1);
+  border: 1px solid rgba(70, 216, 255, 0.22);
 }
 
 .milestone-card.claimable .milestone-icon {
-  background: rgba(255, 202, 40, 0.1);
-  border-color: rgba(255, 202, 40, 0.3);
-  color: #ffca28;
+  color: var(--gold-2);
+  background: rgba(255, 199, 90, 0.12);
+  border-color: rgba(255, 199, 90, 0.35);
+  box-shadow: 0 0 18px -8px rgba(255, 199, 90, 0.9);
 }
 
 .milestone-info {
   display: flex;
-  flex-direction: column;
   flex: 1;
+  min-width: 0;
+  flex-direction: column;
 }
 
 .milestone-title {
-  color: #fff;
-  font-weight: bold;
   font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
 }
 
 .milestone-reward {
-  color: #ffca28;
-  font-weight: 900;
-  font-size: 12px;
   margin-top: 2px;
+  font-family: var(--font-num);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gold-2);
 }
 
 .milestone-card.claimed .milestone-reward {
-  color: #8a95b5;
+  color: var(--muted);
 }
 
-/* زرار الاستلام */
 .btn-claim-milestone {
-  background: linear-gradient(to bottom, #ffca28, #f57f17);
-  border: 1px solid #e65100;
-  color: #2b1a10;
-  font-weight: 900;
-  font-size: 12px;
-  border-radius: 6px;
-  padding: 6px 12px;
-  box-shadow: 0 3px 0 #b71c1c;
-  transition: all 0.1s;
+  flex-shrink: 0;
+  padding: 7px 14px;
+  border: none;
+  border-radius: 10px;
+  background: var(--gold-grad);
+  color: #10141f;
+  font-size: 11px;
+  font-weight: 800;
   white-space: nowrap;
+  box-shadow: 0 8px 18px -12px rgba(240, 165, 0, 0.95),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
-.btn-claim-milestone:active {
-  transform: translateY(3px);
-  box-shadow: 0 0 0 #b71c1c;
+.btn-claim-milestone:hover {
+  filter: brightness(1.06);
 }
 
-/* لما المكافأة تكون غير متاحة (عشان عدد الأصدقاء قليل) */
 .btn-claim-milestone.disabled-btn {
-  background: #555;
-  border-color: #333;
-  box-shadow: 0 3px 0 #222;
-  color: #999;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid var(--stroke) !important;
+  color: #5f6d8c !important;
+  box-shadow: none !important;
   cursor: not-allowed;
-  pointer-events: none; /* بيمنع الضغط */
+  pointer-events: none;
 }
 
 .btn-claim-milestone.claimed-btn {
-  background: transparent;
-  border: 1px solid #8a95b5;
-  color: #8a95b5;
-  box-shadow: none;
+  background: rgba(92, 242, 182, 0.08) !important;
+  border: 1px solid rgba(92, 242, 182, 0.25) !important;
+  color: var(--green-1) !important;
+  box-shadow: none !important;
   cursor: default;
   pointer-events: none;
+}
+
+/* ---------------- friends ---------------- */
+
+.friends-container {
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  background: var(--glass-grad);
+  border: 1px solid var(--stroke);
+  box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.friends-container > h5 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px !important;
+  font-size: 15px !important;
+  font-weight: 800 !important;
+  color: var(--text) !important;
+}
+
+.friends-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.friend-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 11px;
+  border-radius: 14px;
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.05),
+    rgba(255, 255, 255, 0.012)
+  );
+  border: 1px solid var(--stroke);
+}
+
+.friend-avatar {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 12px;
+  font-size: 16px;
+}
+
+.friend-avatar.bg-blue-light {
+  color: var(--cyan-2);
+  background: rgba(70, 216, 255, 0.1);
+  border: 1px solid rgba(70, 216, 255, 0.22);
+}
+
+.friend-info {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.friend-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.friend-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--green-1) !important;
+}
+
+.friend-earnings {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: left;
+}
+
+.earn-val {
+  font-family: var(--font-num);
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--gold-2);
+}
+
+.friend-earnings small {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.friends-list p {
+  margin: 6px 0 2px;
+  font-size: 12px;
+  color: var(--muted) !important;
 }

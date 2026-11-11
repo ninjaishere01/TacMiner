@@ -1,160 +1,231 @@
-.exchange-container {
-  background: var(--wood-board-bg);
-  border: 6px solid var(--wood-board-border);
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow:
-    0 15px 35px rgba(0, 0, 0, 0.6),
-    inset 0 0 20px rgba(139, 69, 19, 0.3);
+/* =========================================================
+   EXCHANGE — TAC → USDT swap
+   ========================================================= */
+
+.mine-container > h4 {
+  position: relative;
+  margin-bottom: 20px !important;
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--text) !important;
+  text-align: start !important;
 }
-.exchange-box {
-  background: var(--wood-panel-bg);
-  border: 2px solid var(--wood-board-border);
-  border-radius: 12px;
-  padding: 15px;
-  margin-bottom: 10px;
-  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-.exchange-label {
-  font-size: 12px;
-  font-weight: bold;
-  color: #5c4033;
-  margin-bottom: 5px;
+
+.mine-container > h4::after {
+  content: "";
   display: block;
+  width: 46px;
+  height: 3px;
+  margin-top: 8px;
+  border-radius: 99px;
+  background: var(--gold-grad);
+  box-shadow: 0 0 14px rgba(255, 199, 90, 0.7);
 }
+
+.exchange-container {
+  position: relative;
+  padding: 18px;
+  border-radius: var(--radius-lg);
+  background: var(--glass-grad);
+  border: 1px solid var(--stroke);
+  box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.exchange-box,
+.exchange-result-box {
+  position: relative;
+  padding: 15px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.055),
+    rgba(255, 255, 255, 0.015)
+  );
+  border: 1px solid var(--stroke);
+}
+
+.exchange-box {
+  margin-bottom: 6px;
+}
+
+.exchange-result-box {
+  margin-top: 6px;
+  border-style: dashed;
+  border-color: rgba(70, 216, 255, 0.35);
+  background: linear-gradient(
+    160deg,
+    rgba(70, 216, 255, 0.07),
+    rgba(8, 13, 23, 0.92)
+  );
+}
+
+.exchange-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
 .exchange-input-group {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
 }
+
 .exchange-input-group input {
-  background: transparent;
-  border: none;
-  font-size: 24px;
-  font-weight: 900;
-  color: var(--wood-text-dark);
   width: 100%;
+  padding: 4px 0;
+  border: none;
   outline: none;
+  background: transparent;
+  font-family: var(--font-num);
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--gold-1);
+  letter-spacing: -0.02em;
 }
+
+.exchange-input-group input::placeholder {
+  color: #485570;
+}
+
+.exchange-input-group input::-webkit-outer-spin-button,
+.exchange-input-group input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 .coin-icon {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-weight: 900;
-  color: var(--wood-text-dark);
-  font-size: 14px;
-  background: rgba(0, 0, 0, 0.05);
-  padding: 5px 10px;
-  border-radius: 20px;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 6px 11px;
+  border-radius: 99px;
+  font-family: var(--font-num);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gold-2);
+  background: rgba(255, 199, 90, 0.1);
+  border: 1px solid rgba(255, 199, 90, 0.25);
 }
+
+.exchange-result-box .coin-icon {
+  color: var(--green-1) !important;
+  background: rgba(92, 242, 182, 0.08) !important;
+  border: 1px solid rgba(92, 242, 182, 0.25) !important;
+}
+
+.exchange-result-value {
+  font-family: var(--font-num);
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--cyan-1);
+  letter-spacing: -0.02em;
+  text-shadow: 0 0 22px rgba(70, 216, 255, 0.35);
+}
+
+.exchange-box small,
+.exchange-result-box small {
+  display: block;
+  margin-top: 6px;
+  font-size: 10px !important;
+  color: var(--muted) !important;
+}
+
+/* swap marker */
+
 .swap-icon-container {
-  text-align: center;
-  margin: -15px 0;
   position: relative;
   z-index: 2;
+  margin: -14px 0;
+  text-align: center;
 }
+
 .swap-icon-btn {
-  width: 40px;
-  height: 40px;
-  background: #ffca28;
-  border: 3px solid #e65100;
-  border-radius: 50%;
+  width: 42px;
+  height: 42px;
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  color: var(--wood-text-dark);
-  box-shadow: 0 3px 0 #b71c1c;
-  cursor: pointer;
+  border-radius: 50%;
+  color: #10141f;
+  background: var(--gold-grad);
+  border: 2px solid rgba(9, 13, 23, 0.9);
+  box-shadow: 0 0 0 4px rgba(255, 199, 90, 0.1),
+    0 12px 24px -10px rgba(240, 165, 0, 0.95);
+  transition: transform 0.3s ease;
 }
-.exchange-result-box {
-  background: rgba(0, 0, 0, 0.05);
-  border: 2px dashed var(--wood-board-border);
-  border-radius: 12px;
-  padding: 15px;
-  margin-top: 10px;
+
+.swap-icon-btn:hover {
+  transform: rotate(180deg);
 }
-.exchange-result-value {
-  font-size: 24px;
-  font-weight: 900;
-  color: #b71c1c;
+
+/* MAX pill */
+
+.btn-max-exchange {
+  padding: 3px 10px;
+  border: 1px solid rgba(255, 199, 90, 0.4);
+  border-radius: 99px;
+  background: rgba(255, 199, 90, 0.1);
+  color: var(--gold-1);
+  font-family: var(--font-num);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
+
+.btn-max-exchange:hover {
+  background: rgba(255, 199, 90, 0.2);
+  border-color: rgba(255, 199, 90, 0.7);
+}
+
+/* CTA */
+
 .btn-confirm-exchange {
-  background: linear-gradient(to bottom, #4fc3f7, #0288d1);
-  border: 3px solid #01579b;
-  color: white;
-  font-weight: 900;
-  font-size: 18px;
-  border-radius: 10px;
-  padding: 12px;
   width: 100%;
-  margin-top: 20px;
-  box-shadow: 0 5px 0 #01579b;
-  transition: all 0.1s;
+  padding: 14px;
+  margin-top: 18px;
+  border: none;
+  border-radius: 15px;
+  font-family: var(--font-num);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--muted);
+  box-shadow: none;
+  transition: filter 0.2s ease, transform 0.15s ease,
+    box-shadow 0.25s ease;
 }
-.btn-confirm-exchange:active {
-  transform: translateY(5px);
-  box-shadow: 0 0 0 #01579b;
+
+.btn-confirm-exchange:not(:disabled) {
+  background: var(--cyan-grad);
+  color: #04141c;
+  box-shadow: 0 16px 30px -14px rgba(70, 216, 255, 0.95),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
+
+.btn-confirm-exchange:not(:disabled):hover {
+  filter: brightness(1.06);
+}
+
+.btn-confirm-exchange:not(:disabled):active {
+  transform: translateY(2px) scale(0.99);
+  box-shadow: 0 8px 18px -12px rgba(70, 216, 255, 0.95);
+}
+
 .btn-confirm-exchange:disabled {
-  background: #999;
-  border-color: #666;
-  box-shadow: 0 5px 0 #444;
   cursor: not-allowed;
 }
-.btn-max-exchange {
-  background: #ffca28;
-  border: 1px solid #e65100;
-  color: var(--wood-text-dark);
-  font-weight: 900;
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  box-shadow: 0 2px 0 #b71c1c;
-  transition: all 0.1s;
-  cursor: pointer;
-}
-.btn-max-exchange:active {
-  transform: translateY(2px);
-  box-shadow: 0 0 0 #b71c1c;
-}
 
-
-/* قسم السحب السريع */
-.quick-withdraw-box {
-  background: rgba(26, 30, 46, 0.6);
-  border: 2px dashed rgba(0, 210, 255, 0.3);
-  border-radius: 12px;
-  padding: 15px;
-}
-
+.btn-connect-wallet,
 .btn-withdraw-instant {
-  background: linear-gradient(to bottom, #00d2ff, #0052ff);
-  border: 2px solid #003399;
-  color: #fff;
-  font-weight: 900;
-  font-size: 16px;
-  border-radius: 8px;
-  padding: 10px;
-  box-shadow: 0 4px 0 #001f66;
-  transition: all 0.1s;
-}
-
-.btn-withdraw-instant:active {
-  transform: translateY(4px);
-  box-shadow: 0 0 0 #001f66;
-}
-
-.btn-connect-wallet {
-  background: linear-gradient(to bottom, #00d2ff, #0052ff);
-  border: none;
-  color: #fff;
-  font-weight: 900;
-  font-size: 14px;
-  border-radius: 10px;
-  padding: 10px;
-  box-shadow: 0 4px 0 #003399;
-  text-decoration: none;
-  display: block;
-  text-align: center;
+  border-radius: 12px;
+  font-weight: 800;
 }

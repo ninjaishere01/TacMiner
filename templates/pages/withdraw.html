@@ -236,13 +236,13 @@
         // ✅ شرط السحب: محفظة + رصيد >= 5 + إحالات >= 3
         if (currentUSDT >= 5 && userWalletAddress && referralsCount >= 3) {
           btn.disabled = false;
-          btn.style.background = "linear-gradient(to bottom, #ffca28, #f57f17)";
-          btn.style.boxShadow = "0 5px 0 #b71c1c";
+          btn.style.background = "";
+          btn.style.boxShadow = "";
           condition.classList.add("d-none");
         } else {
           btn.disabled = true;
-          btn.style.background = "#999";
-          btn.style.boxShadow = "0 5px 0 #444";
+          btn.style.background = "";
+          btn.style.boxShadow = "";
 
           // ✅ نظهر شرط الإحالات لو أقل من 3
           if (referralsCount < 3) {
@@ -287,10 +287,8 @@
                       currentUSDT.toFixed(2);
 
                     document.getElementById("withdraw-btn").disabled = true;
-                    document.getElementById("withdraw-btn").style.background =
-                      "#999";
-                    document.getElementById("withdraw-btn").style.boxShadow =
-                      "0 5px 0 #444";
+                    document.getElementById("withdraw-btn").style.background = "";
+                    document.getElementById("withdraw-btn").style.boxShadow = "";
 
                     Swal.fire({
                       title: "تم تقديم الطلب!",

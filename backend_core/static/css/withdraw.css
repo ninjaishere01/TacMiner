@@ -1,107 +1,209 @@
-/* صفحة السحب */
-.page-header-title {
-  color: #fff;
-  font-weight: 900;
-  text-align: center;
-  margin-bottom: 20px;
-  font-size: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-}
+/* =========================================================
+   WITHDRAW — USDT balance, wallet, notes, CTA
+   ========================================================= */
 
 .withdraw-container {
-  background: rgba(26, 30, 46, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+  padding: 18px;
+  border-radius: var(--radius-lg);
+  background: var(--glass-grad);
+  border: 1px solid var(--stroke);
+  box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-/* كارت رصيد USDT */
+/* balance card */
+
 .usdt-balance-card {
-  background: linear-gradient(145deg, #1e253a, #121420);
-  border: 1px solid rgba(0, 255, 136, 0.2);
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: inset 0 0 15px rgba(0, 255, 136, 0.05);
+  position: relative;
+  padding: 22px 16px;
+  border-radius: var(--radius-md);
+  text-align: center;
+  background: linear-gradient(
+    160deg,
+    rgba(92, 242, 182, 0.12) 0%,
+    rgba(11, 24, 35, 0.94) 58%,
+    rgba(9, 14, 24, 0.97) 100%
+  );
+  border: 1px solid rgba(92, 242, 182, 0.28);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 0 40px -22px rgba(92, 242, 182, 0.8);
+  overflow: hidden;
+}
+
+.usdt-balance-card::before {
+  content: "";
+  position: absolute;
+  top: -70px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 190px;
+  height: 190px;
+  background: radial-gradient(
+    circle,
+    rgba(92, 242, 182, 0.18),
+    transparent 65%
+  );
+  pointer-events: none;
+}
+
+.usdt-balance-card h6 {
+  position: relative;
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--muted) !important;
 }
 
 .usdt-amount {
+  position: relative;
+  font-family: var(--font-num);
   font-size: 36px;
-  font-weight: 900;
-  color: #fff;
-  text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  text-shadow: 0 0 26px rgba(92, 242, 182, 0.35);
 }
 
-/* كارت المحفظة */
+.usdt-amount i {
+  color: var(--green-1) !important;
+}
+
+/* wallet box */
+
 .wallet-info-box {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
   padding: 15px;
-  color: white;
+  border-radius: var(--radius-md);
+  color: var(--text);
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.05),
+    rgba(255, 255, 255, 0.015)
+  );
+  border: 1px solid var(--stroke);
 }
 
-/* ملاحظات السحب */
+.wallet-info-box .text-white {
+  color: var(--text) !important;
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.wallet-info-box a.text-info {
+  color: var(--cyan-2) !important;
+  font-weight: 700;
+}
+
+#wallet-connected-view p,
+#wallet-not-connected-view p {
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+#wallet-address-display {
+  color: var(--green-1);
+  font-family: var(--font-num);
+  font-size: 10px;
+}
+
+/* notes */
+
 .withdraw-notes {
-  font-size: 12px;
-  color: #8a95b5;
-  line-height: 1.8;
+  font-size: 11px;
+  line-height: 1.9;
+  color: var(--muted);
 }
 
-/* زرار السحب */
-.btn-confirm-withdraw {
-  background: #999;
-  border: 3px solid #666;
-  color: #fff;
-  font-weight: 900;
-  font-size: 18px;
-  border-radius: 10px;
-  padding: 12px;
-  width: 100%;
-  box-shadow: 0 5px 0 #444;
-  transition: all 0.1s;
-  text-transform: uppercase;
+.withdraw-notes i {
+  margin-left: 3px;
 }
-
-.btn-confirm-withdraw:active {
-  transform: translateY(5px);
-  box-shadow: 0 0 0;
-}
-/* زرار ربط المحفظة (يظهر لما المحفظة مش مربوطة) */
-.btn-connect-wallet {
-  background: linear-gradient(to bottom, #00d2ff, #0052ff);
-  color: #fff;
-  font-weight: 900;
-  font-size: 14px;
-  border-radius: 10px;
-  padding: 10px;
-  box-shadow: 0 4px 0 #003399;
-  text-decoration: none;
-  display: block;
-  text-align: center;
-  transition: transform 0.1s;
-}
-
-.btn-connect-wallet:active {
-  transform: translateY(4px);
-  box-shadow: 0 0 0 #003399;
-}
-
-
 
 #referral-condition {
-  color: #ff5252;
-  background-color: rgba(255, 82, 82, 0.1);
-  border: 1px solid rgba(255, 82, 82, 0.3);
-  border-radius: 8px;
-  padding: 8px;
-  margin-top: 10px;
+  margin-top: 12px !important;
+  padding: 10px;
+  border-radius: 12px;
+  color: var(--red-1) !important;
+  background: rgba(255, 107, 138, 0.08);
+  border: 1px solid rgba(255, 107, 138, 0.28);
+  font-size: 11px;
+  line-height: 1.7;
 }
 
 #referral-condition a {
-  color: #ff5252;
-  font-weight: 900;
+  color: var(--red-1) !important;
+  font-weight: 800;
+}
+
+/* CTA */
+
+.btn-confirm-withdraw {
+  width: 100%;
+  padding: 14px;
+  margin-top: 16px;
+  border: none;
+  border-radius: 15px;
+  font-family: var(--font-num);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--muted);
+  box-shadow: none;
+  transition: filter 0.2s ease, transform 0.15s ease,
+    box-shadow 0.25s ease;
+}
+
+.btn-confirm-withdraw:not(:disabled) {
+  background: var(--gold-grad);
+  color: #10141f;
+  box-shadow: 0 16px 30px -14px rgba(240, 165, 0, 0.95),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.btn-confirm-withdraw:not(:disabled):hover {
+  filter: brightness(1.06);
+}
+
+.btn-confirm-withdraw:not(:disabled):active {
+  transform: translateY(2px) scale(0.99);
+  box-shadow: 0 8px 18px -12px rgba(240, 165, 0, 0.95);
+}
+
+.btn-connect-wallet {
+  display: block;
+  padding: 11px;
+  border-radius: 12px;
+  text-align: center;
+  text-decoration: none;
+  color: #04141c;
+  font-size: 13px;
+  font-weight: 800;
+  background: var(--cyan-grad);
+  box-shadow: 0 12px 24px -14px rgba(70, 216, 255, 0.95),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.btn-connect-wallet:hover {
+  filter: brightness(1.05);
+  color: #04141c;
+}
+
+/* legacy quick withdraw */
+
+.quick-withdraw-box {
+  padding: 15px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(70, 216, 255, 0.3);
+}
+
+.btn-withdraw-instant {
+  padding: 11px;
+  border: none;
+  border-radius: 12px;
+  color: #04141c;
+  font-size: 14px;
+  font-weight: 800;
+  background: var(--cyan-grad);
+  box-shadow: 0 12px 24px -14px rgba(70, 216, 255, 0.95);
 }

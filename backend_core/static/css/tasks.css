@@ -1,226 +1,415 @@
-/* ==========================================
-   تصميم صفحة المهام (تحسين الشكل والمسافات)
-   ========================================== */
+/* =========================================================
+   TASKS — daily streak, activation, boost, channels
+   ========================================================= */
 
-/* الحاوية الرئيسية */
-.mine-container {
-  padding-bottom: 20px;
-}
-
-/* كارت المهمة */
-.task-card {
-  display: flex;
-  align-items: center;
-  background: linear-gradient(145deg, #d8b68c, #c49a6c); /* تدرج لوني للخشب */
-  border: 3px solid var(--wood-board-border);
-  border-radius: 16px;
-  padding: 10px 12px; /* تصغير الحشو شوية */
-  margin-bottom: 10px; /* تقليل المسافة بين الكروت */
-  box-shadow:
-    0 6px 12px rgba(0, 0, 0, 0.4),
-    inset 0 1px 3px rgba(255, 255, 255, 0.2);
-  position: relative;
-  transition:
-    transform 0.15s ease,
-    box-shadow 0.15s ease;
-}
-
-.task-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.5);
-}
-
-.task-card:active {
-  transform: scale(0.98);
-}
-
-/* أيقونة المهمة */
-.task-icon-box {
-  width: 55px;
-  height: 55px;
-  background: var(--wood-panel-bg);
-  border: 2px solid var(--wood-panel-border);
-  border-radius: 12px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-right: 12px;
-  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
-  flex-shrink: 0;
-}
-
-.task-icon-box i {
-  font-size: 26px;
-}
-
-.task-icon-box img {
-  width: 38px;
-  height: 38px;
-  object-fit: contain;
-}
-
-/* معلومات المهمة */
-.task-info {
-  flex: 1;
-  color: var(--wood-text-dark);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.task-info h6 {
-  font-weight: 900;
-  margin-bottom: 2px;
-  font-size: 14px;
-  line-height: 1.2;
-}
-
-/* المكافأة */
-.task-reward {
-  display: inline-block;
-  background: rgba(0, 0, 0, 0.08);
-  padding: 3px 8px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: bold;
-  color: #b71c1c;
-  width: fit-content;
-}
-
-/* الزرار */
-.btn-task-action {
-  background: linear-gradient(to bottom, #ffca28, #f57f17);
-  border: 2px solid #e65100;
-  color: var(--wood-text-dark);
-  font-weight: 900;
-  font-size: 12px;
-  border-radius: 8px;
-  padding: 8px 16px;
-  box-shadow: 0 3px 0 #b71c1c;
-  transition: all 0.1s;
-  text-transform: uppercase;
-  flex-shrink: 0;
-}
-
-.btn-task-action:active {
-  transform: translateY(3px);
-  box-shadow: 0 0 0 #b71c1c;
-}
-
-.btn-task-action:disabled {
-  background: #999;
-  border-color: #666;
-  box-shadow: 0 3px 0 #444;
-  color: #ddd;
-}
-
-/* شريط التقدم */
-.task-progress-container {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 10px;
-  height: 8px;
-  margin-top: 6px;
-  overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.task-progress-bar {
-  background: linear-gradient(to right, #d84315, #ffca28);
-  height: 100%;
-  transition: width 0.3s ease;
-  border-radius: 10px;
-}
-
-/* ==========================================
-   تخصيص السكرول 
-   ========================================== */
 body {
   overflow-y: auto !important;
-  padding-bottom: 100px;
+  padding-bottom: 104px;
 }
 
-::-webkit-scrollbar {
-  width: 6px;
+.mine-container > h4 {
+  position: relative;
+  margin-bottom: 20px !important;
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--text) !important;
+  text-align: start !important;
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
+.mine-container > h4::after {
+  content: "";
+  display: block;
+  width: 46px;
+  height: 3px;
+  margin-top: 8px;
+  border-radius: 99px;
+  background: var(--gold-grad);
+  box-shadow: 0 0 14px rgba(255, 199, 90, 0.7);
 }
 
-::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 202, 40, 0.5);
-  border-radius: 10px;
-}
+/* ---------------- 30-day streak ---------------- */
 
-::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255, 202, 40, 0.8);
-}
-
-/* تحدي الـ 30 يوم */
 .streak-container {
-  background: rgba(26, 30, 46, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  padding: 10px 12px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  position: relative;
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(
+    160deg,
+    rgba(255, 199, 90, 0.09) 0%,
+    rgba(20, 28, 48, 0.9) 38%,
+    rgba(10, 15, 26, 0.96) 100%
+  );
+  border: 1px solid rgba(255, 199, 90, 0.22);
+  box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.streak-container::before {
+  content: "";
+  position: absolute;
+  top: -50px;
+  right: -40px;
+  width: 160px;
+  height: 160px;
+  background: radial-gradient(
+    circle,
+    rgba(255, 199, 90, 0.16),
+    transparent 68%
+  );
+  pointer-events: none;
+}
+
+.streak-container h6 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text) !important;
+  font-weight: 800 !important;
+}
+
+.streak-container h6 i {
+  filter: drop-shadow(0 0 8px rgba(255, 199, 90, 0.6));
 }
 
 .streak-grid {
   display: grid;
   grid-template-columns: repeat(10, minmax(0, 1fr));
-  gap: 4px;
+  gap: 5px;
   width: 100%;
-  margin: 8px 0 4px;
+  margin: 10px 0 6px;
 }
 
 .streak-day {
+  position: relative;
   aspect-ratio: 1;
   min-height: 24px;
-  width: 100%;
-  box-sizing: border-box;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   justify-content: center;
   align-items: center;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  color: #6d7b9b;
+  font-family: var(--font-num);
   font-size: 9px;
-  color: #6c7a9a;
-  font-weight: bold;
+  font-weight: 700;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* اليوم اللي اتفتح */
 .streak-day.done {
-  background: linear-gradient(to bottom, #ffca28, #f57f17);
-  color: #3e2723;
-  border: 1px solid #e65100;
-  box-shadow: 0 0 5px rgba(255, 202, 40, 0.4);
+  background: var(--gold-grad);
+  border-color: transparent;
+  color: #3a2600;
+  box-shadow: 0 4px 12px -4px rgba(240, 165, 0, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
-/* اليوم الحالي */
+.streak-day.done i {
+  font-size: 9px;
+}
+
 .streak-day.current {
-  background: rgba(0, 210, 255, 0.2);
-  color: #00d2ff;
-  border: 1px solid #00d2ff;
-  box-shadow: 0 0 5px rgba(0, 210, 255, 0.4);
+  background: rgba(70, 216, 255, 0.12);
+  border-color: rgba(70, 216, 255, 0.6);
+  color: var(--cyan-1);
+  box-shadow: 0 0 0 3px rgba(70, 216, 255, 0.08);
+  animation: currentDayPulse 2.2s ease-in-out infinite;
+}
+
+@keyframes currentDayPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px rgba(70, 216, 255, 0.08),
+      0 0 12px rgba(70, 216, 255, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(70, 216, 255, 0.14),
+      0 0 20px rgba(70, 216, 255, 0.45);
+  }
 }
 
 .streak-day.last-day {
-  background: linear-gradient(to bottom, #ffca28, #f57f17);
-  color: #3e2723;
-  border: 1px solid #e65100;
-  font-size: 9px;
-  font-weight: 900;
-  position: relative;
+  background: linear-gradient(145deg, rgba(255, 199, 90, 0.2), rgba(255, 107, 138, 0.12));
+  border: 1px solid rgba(255, 199, 90, 0.45);
+  color: var(--gold-1);
+  font-weight: 800;
 }
+
 .streak-day.last-day::after {
-  content: "\f6d5"; /* كود الأيقونة بتاعة Dragon في FontAwesome */
+  content: "\f6d5";
   font-family: "Font Awesome 6 Free";
   font-weight: 900;
   position: absolute;
-  top: -4px;
-  right: -4px;
+  top: -5px;
+  right: -5px;
   font-size: 10px;
-  color: #d84315;
-  text-shadow: 0 0 3px white;
+  color: var(--gold-2);
+  text-shadow: 0 0 6px rgba(255, 199, 90, 0.9);
+}
+
+.streak-container .badge {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 199, 90, 0.2),
+    rgba(255, 199, 90, 0.07)
+  ) !important;
+  color: var(--gold-1) !important;
+  border: 1px solid rgba(255, 199, 90, 0.35);
+  border-radius: 99px;
+  padding: 5px 12px !important;
+  font-weight: 700 !important;
+}
+
+#daily-checkin-btn {
+  background: var(--gold-grad) !important;
+  border: none !important;
+  border-radius: 14px !important;
+  padding: 12px !important;
+  color: #10141f !important;
+  font-weight: 800 !important;
+  font-size: 14px !important;
+  box-shadow: 0 14px 28px -14px rgba(240, 165, 0, 0.95),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55) !important;
+  transition: filter 0.2s ease, transform 0.15s ease !important;
+}
+
+#daily-checkin-btn:hover {
+  filter: brightness(1.06);
+}
+
+#daily-checkin-btn:disabled {
+  background: rgba(255, 255, 255, 0.07) !important;
+  color: var(--muted) !important;
+  box-shadow: none !important;
+  border: 1px solid var(--stroke) !important;
+}
+
+/* ---------------- task cards ---------------- */
+
+.task-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px;
+  margin-bottom: 10px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.055),
+    rgba(255, 255, 255, 0.015)
+  );
+  border: 1px solid var(--stroke);
+  box-shadow: 0 16px 34px -28px rgba(0, 0, 0, 0.95),
+    inset 0 1px 0 rgba(255, 255, 255, 0.045);
+  transition: transform 0.2s ease, border-color 0.2s ease,
+    box-shadow 0.2s ease;
+  overflow: hidden;
+}
+
+.task-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 3px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 199, 90, 0.7),
+    rgba(255, 199, 90, 0)
+  );
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.task-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 199, 90, 0.22);
+}
+
+.task-card:hover::before {
+  opacity: 1;
+}
+
+.task-icon-box {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 15px;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 199, 90, 0.13),
+    rgba(255, 255, 255, 0.02)
+  );
+  border: 1px solid rgba(255, 199, 90, 0.2);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.task-icon-box i {
+  font-size: 22px;
+  color: var(--gold-2);
+}
+
+.task-icon-box i.text-danger {
+  color: var(--red-1) !important;
+}
+.task-icon-box i.text-info {
+  color: var(--cyan-2) !important;
+}
+.task-icon-box i.text-warning {
+  color: var(--gold-2) !important;
+}
+
+.task-icon-box img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+
+.task-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  color: var(--text);
+}
+
+.task-info h6 {
+  margin-bottom: 4px;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.3;
+  color: var(--text);
+}
+
+.task-reward {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-family: var(--font-num);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--green-1);
+  background: rgba(92, 242, 182, 0.1);
+  border: 1px solid rgba(92, 242, 182, 0.22);
+}
+
+.task-progress-container {
+  height: 7px;
+  margin-top: 7px;
+  border-radius: 99px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+.task-progress-bar {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--gold-3), var(--gold-1));
+  box-shadow: 0 0 10px rgba(255, 199, 90, 0.55);
+  transition: width 0.35s ease;
+}
+
+#boost-progress {
+  background: linear-gradient(90deg, #2aa9ff, var(--cyan-1));
+  box-shadow: 0 0 10px rgba(70, 216, 255, 0.55);
+}
+
+/* action buttons */
+
+.btn-task-action {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border: 1px solid rgba(255, 199, 90, 0.4);
+  border-radius: 12px;
+  background: rgba(255, 199, 90, 0.08);
+  color: var(--gold-1);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition: filter 0.2s ease, background 0.2s ease, transform 0.12s ease;
+}
+
+.btn-task-action:hover {
+  background: rgba(255, 199, 90, 0.16);
+  border-color: rgba(255, 199, 90, 0.6);
+  color: var(--gold-1);
+}
+
+.btn-task-action:disabled {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: var(--stroke) !important;
+  color: #6d7b9b !important;
+  box-shadow: none !important;
+}
+
+#channel-actions-1 .btn-task-action:first-child,
+#channel-actions-2 .btn-task-action:first-child,
+#channel-actions-3 .btn-task-action:first-child,
+#channel-actions-4 .btn-task-action:first-child {
+  background: var(--gold-grad);
+  border-color: transparent;
+  color: #10141f;
+  box-shadow: 0 8px 18px -12px rgba(240, 165, 0, 0.95);
+}
+
+#channel-actions-1 .btn-task-action:last-child,
+#channel-actions-2 .btn-task-action:last-child,
+#channel-actions-3 .btn-task-action:last-child,
+#channel-actions-4 .btn-task-action:last-child {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.14);
+  color: var(--muted);
+}
+
+#channel-actions-1 .btn-task-action:last-child:hover,
+#channel-actions-2 .btn-task-action:last-child:hover,
+#channel-actions-3 .btn-task-action:last-child:hover,
+#channel-actions-4 .btn-task-action:last-child:hover {
+  color: var(--text);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+/* dynamic countdown blocks */
+
+#activation-timer,
+#boost-timer {
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(255, 199, 90, 0.1);
+  border: 1px solid rgba(255, 199, 90, 0.3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  font-size: 10px !important;
+  line-height: 1.45 !important;
+}
+
+#boost-timer {
+  background: rgba(70, 216, 255, 0.09);
+  border-color: rgba(70, 216, 255, 0.3);
+}
+
+#activation-timer {
+  color: var(--gold-1) !important;
+}
+
+#boost-timer {
+  color: var(--cyan-1) !important;
+}
+
+/* completed channel note */
+.task-info span.text-success,
+.task-info + div .text-success {
+  color: var(--green-1) !important;
+  font-weight: 700;
+  font-size: 12px;
 }
