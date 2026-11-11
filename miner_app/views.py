@@ -903,7 +903,8 @@ def request_withdraw(request):
                 withdraw_amount,
                 withdraw_request.pk,
                 wallet_address,
-                withdraw_request.created_at,
+                "pending",
+                telegram_id,
             ),
             daemon=True,
         )
@@ -1087,16 +1088,10 @@ def _mask_wallet(wallet_address):
     return f"{value[:8]}...{value[-4:]}"
 
 
-WITHDRAWAL_STATUS_LABELS = {
-    "pending": "⏳ قيد المراجعة",
-    "completed": "✅ مدفوعة",
-    "rejected": "❌ مرفوضة",
-}
-
 WITHDRAWAL_PROOF_HEADERS = {
-    "pending": "💎 TAC MINING — طلب سحب جديد",
-    "completed": "💎 TAC MINING — عملية سحب مدفوعة",
-    "rejected": "💎 TAC MINING — طلب سحب مرفوض",
+    "pending": "Withdrawal Under Review",
+    "completed": "Withdrawal Successful",
+    "rejected": "Withdrawal Rejected",
 }
 
 
@@ -1106,28 +1101,33 @@ def _withdrawal_proof_text(
     usdt_amount,
     request_id,
     wallet_address="",
-    created_at=None,
     status="pending",
+    telegram_id="",
 ):
     tac_display = f"{tac_amount:,.2f}".rstrip("0").rstrip(".")
     usdt_display = f"{usdt_amount:,.2f}"
-    created_at = created_at or timezone.now()
-    date_display = timezone.localtime(created_at).strftime("%d/%m/%Y - %H:%M")
-    status_label = WITHDRAWAL_STATUS_LABELS.get(status, status)
-    header = WITHDRAWAL_PROOF_HEADERS.get(status, "💎 TAC MINING — سحب")
+    header = WITHDRAWAL_PROOF_HEADERS.get(status, "Withdrawal")
 
-    return (
-        f"{header}\n"
-        "━━━━━━━━━━━━━━━━━━━━\n\n"
-        f"🆔 رقم العملية: #{request_id}\n"
-        f"👤 المستخدم: {mask_username(username)}\n"
-        f"💎 الكمية: {tac_display} TAC\n"
-        f"💵 القيمة: ${usdt_display}\n"
-        f"🔗 المحفظة: {_mask_wallet(wallet_address)}\n"
-        f"🕒 التاريخ: {date_display}\n"
-        f"📌 الحالة: {status_label}\n\n"
-        "━━━━━━━━━━━━━━━━━━━━"
-    )
+    lines = [
+        header,
+        f"#{request_id}",
+        "",
+        f"👤 ⌛ {mask_username(username)}",
+        "",
+    ]
+    if telegram_id not in (None, ""):
+        lines += [f"🪪 ID: {telegram_id}", ""]
+    lines += [
+        "💎 Amount:",
+        f"{tac_display} TAC",
+        "",
+        "💵 Coins Deducted:",
+        f"${usdt_display}",
+        "",
+        "🔐 Wallet Address:",
+        _mask_wallet(wallet_address),
+    ]
+    return "\n".join(lines)
 
 
 def send_withdrawal_proof_notification(
@@ -1136,8 +1136,8 @@ def send_withdrawal_proof_notification(
     usdt_amount,
     request_id,
     wallet_address="",
-    created_at=None,
     status="pending",
+    telegram_id="",
 ):
     """إشعار سحب في قناة السحوبات (قيد المراجعة أو مدفوعة)."""
     chat_id = getattr(settings, "TELEGRAM_WITHDRAWAL_GROUP_ID", "")
@@ -1150,8 +1150,8 @@ def send_withdrawal_proof_notification(
         usdt_amount,
         request_id,
         wallet_address=wallet_address,
-        created_at=created_at,
         status=status,
+        telegram_id=telegram_id,
     )
     payload = {
         "chat_id": chat_id,

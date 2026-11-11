@@ -39,8 +39,8 @@ def announce_paid_withdrawal(sender, instance, created, **kwargs):
             instance.amount,
             instance.pk,
             instance.wallet_address,
-            instance.created_at,
             "completed",
+            instance.user.telegram_id,
         ),
         daemon=True,
     ).start()
