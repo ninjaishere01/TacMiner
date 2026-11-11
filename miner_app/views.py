@@ -350,10 +350,18 @@ def login_or_register(request):
             if user.boost_multiplier != 1.0:
                 user.boost_multiplier = 1.0
                 user.save(update_fields=["boost_multiplier"])
-            
+
             cooldown_end = user.last_boost_time + timedelta(hours=8)
             if now < cooldown_end:
                 boost_cooldown_left = int((cooldown_end - now).total_seconds())
+            elif user.boost_ads_watched >= 5:
+                # الاستراحة خلصت: نجهز دورة جديدة
+                user.boost_ads_watched = 0
+                user.save(update_fields=["boost_ads_watched"])
+    elif user.boost_ads_watched >= 5:
+        # حالة قديمة علقت عند 5 إعلانات من غير تفعيل: نعيد ضبط العداد
+        user.boost_ads_watched = 0
+        user.save(update_fields=["boost_ads_watched"])
 
     # 8. بنحسب الإنتاج الحالي للعمال
     production = calculate_user_production(user)
@@ -710,45 +718,45 @@ def watch_ad(request):
                     boost_end_time = user.last_boost_time + timedelta(hours=1)
                     if now < boost_end_time:
                         return Response({"error": "البوست شغال بالفعل. استنى لما يخلص."}, status=400)
-                    else:
-                        # لو خلصت الساعة، بنلغي البوست ونرجع السرعة الطبيعية
-                        user.boost_multiplier = 1.0
-                        user.save(update_fields=["boost_multiplier"])
+                    # لو خلصت الساعة، بنلغي البوست ونرجع السرعة الطبيعية
+                    user.boost_multiplier = 1.0
+                    user.save(update_fields=["boost_multiplier"])
 
-                # بنشوف وقت بداية الدورة القديمة (لو موجود)
+                # 2. لو خلص دورة الـ 5 إعلانات: لازم 8 ساعات من وقت تفعيل البوست
                 if user.boost_ads_watched >= 5:
-                    # معناها إنه خلص الـ 5 إعلانات، ومحتاج يستنى 8 ساعات من وقت بداية الدورة
                     if user.last_boost_time:
-                        # بنحسب وقت انتهاء الاستراحة (8 ساعات من بداية الدورة)
                         cooldown_end = user.last_boost_time + timedelta(hours=8)
                         if now < cooldown_end:
                             time_left_cooldown = int((cooldown_end - now).total_seconds())
                             return Response({"error": f"لازم تستنى {time_left_cooldown} ثانية."}, status=400)
-                        else:
-                            # خلصت الـ 8 ساعات، بنصفر العداد عشان يبدأ دورة جديدة
-                            user.boost_ads_watched = 0
-                            user.last_boost_time = now
-                            user.save(update_fields=["boost_ads_watched", "last_boost_time"])
-
-                # 3. لو العداد أقل من 5، بنزوده
-                if user.boost_ads_watched < 5:
-                    user.boost_ads_watched += 1
+                    # الاستراحة خلصت (أو حالة قديمة): نبدأ دورة جديدة
+                    user.boost_ads_watched = 0
                     user.save(update_fields=["boost_ads_watched"])
-                    return Response({
-                        "message": "Boost Ad Watched!",
-                        "watched_count": user.boost_ads_watched
-                    })
-                else:
-                    # 4. لو وصل 5، بنديله المضاعف
+
+                # 3. نسجل الإعلان، والخامس بيفعّل المضاعف فوراً
+                user.boost_ads_watched += 1
+
+                if user.boost_ads_watched >= 5:
                     # نقفل أرباح الفترة اللي فاتت قبل ما المضاعف يتفعّل
                     settle_earnings(user, now)
                     user.boost_multiplier = Decimal('2.00')
                     user.last_boost_time = now
-                    user.save(update_fields=["boost_multiplier", "last_boost_time"])
+                    user.save(update_fields=[
+                        "boost_ads_watched",
+                        "boost_multiplier",
+                        "last_boost_time",
+                    ])
                     return Response({
                         "message": "Boost Activated!",
-                        "boost_multiplier": float(user.boost_multiplier)
+                        "boost_multiplier": float(user.boost_multiplier),
+                        "watched_count": user.boost_ads_watched,
                     })
+
+                user.save(update_fields=["boost_ads_watched"])
+                return Response({
+                    "message": "Boost Ad Watched!",
+                    "watched_count": user.boost_ads_watched
+                })
 
             return Response({"error": "Invalid ad type"}, status=400)
     except User.DoesNotExist:

@@ -681,8 +681,8 @@
           if (timeLeft <= 0) {
             clearInterval(timerInterval);
             timerElement.remove();
-            // نبدأ استراحة 8 ساعات
-            startBoostCooldownTimer(8 * 60 * 60);
+            // الاستراحة 7 ساعات بعد ساعة البوست = دورة 8 ساعات كاملة
+            startBoostCooldownTimer(7 * 60 * 60);
             boostBtn.style.display = "none";
             document.getElementById("boost-watched").innerText = "0";
             document.getElementById("boost-progress").style.width = "0%";
@@ -905,14 +905,10 @@
                 boostBtn.style.display = "none";
                 startBoostCooldownTimer(user.boost_cooldown_left);
               } else {
-                // مفيش بوست ولا استراحة
-                const boostCountForBtn =
-                  parseInt(user.boost_ads_watched, 10) || 0;
+                // مفيش بوست ولا استراحة: دورة جديدة والزرار مفتوح
                 boostBtn.style.display = "block";
                 boostBtn.innerText = "شاهد";
-
-                // الزرار يتقفل لو العداد 5 (لحد ما يدخل يفعله أو الوقت يخلص)
-                boostBtn.disabled = boostCountForBtn >= 5;
+                boostBtn.disabled = false;
               }
             }
           })

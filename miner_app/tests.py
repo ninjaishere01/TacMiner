@@ -581,3 +581,129 @@ class ActivationCycleTests(TestCase):
         self.assertAlmostEqual(
             user_data["activation_time_left"], 86400, delta=10
         )
+
+
+@override_settings(
+    TELEGRAM_BOT_TOKEN=TEST_BOT_TOKEN,
+    TELEGRAM_WEBHOOK_SECRET=TEST_WEBHOOK_SECRET,
+    TELEGRAM_INITDATA_MAX_AGE_SECONDS=86400,
+    SECURE_SSL_REDIRECT=False,
+    ALLOWED_HOSTS=["testserver"],
+)
+class BoostCycleTests(TestCase):
+    def post_json(self, path, payload, **extra):
+        return self.client.post(
+            path,
+            data=json.dumps(payload),
+            content_type="application/json",
+            **extra,
+        )
+
+    def create_miner(self, telegram_id, **kwargs):
+        defaults = {
+            "username": f"boost-{telegram_id}",
+            "last_collected_at": timezone.now() - timedelta(hours=1),
+        }
+        defaults.update(kwargs)
+        return User.objects.create(telegram_id=telegram_id, **defaults)
+
+    def watch_boost(self, telegram_id):
+        return self.post_json(
+            "/api/watch-ad/",
+            {
+                "initData": build_init_data(telegram_id),
+                "ad_type": "boost",
+            },
+        )
+
+    def test_fifth_ad_activates_boost_immediately(self):
+        self.create_miner(5101)
+
+        for expected in (1, 2, 3, 4):
+            response = self.watch_boost(5101)
+            body = response.json()
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(body["message"], "Boost Ad Watched!")
+            self.assertEqual(body["watched_count"], expected)
+
+        response = self.watch_boost(5101)
+        body = response.json()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(body["message"], "Boost Activated!")
+        self.assertEqual(body["watched_count"], 5)
+        self.assertEqual(body["boost_multiplier"], 2.0)
+
+        user = User.objects.get(telegram_id=5101)
+        self.assertEqual(user.boost_ads_watched, 5)
+        self.assertEqual(user.boost_multiplier, Decimal("2.00"))
+        self.assertIsNotNone(user.last_boost_time)
+        self.assertEqual(self.watch_boost(5101).status_code, 400)
+
+    def test_boost_blocked_during_cooldown(self):
+        self.create_miner(
+            5102,
+            boost_ads_watched=5,
+            boost_multiplier=Decimal("1.00"),
+            last_boost_time=timezone.now() - timedelta(hours=2),
+        )
+
+        response = self.watch_boost(5102)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("لازم تستنى", response.json()["error"])
+
+    def test_boost_reopens_after_eight_hours(self):
+        self.create_miner(
+            5103,
+            boost_ads_watched=5,
+            boost_multiplier=Decimal("2.00"),
+            last_boost_time=timezone.now() - timedelta(hours=8, minutes=1),
+        )
+
+        response = self.watch_boost(5103)
+        body = response.json()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(body["message"], "Boost Ad Watched!")
+        self.assertEqual(body["watched_count"], 1)
+
+        user = User.objects.get(telegram_id=5103)
+        self.assertEqual(user.boost_multiplier, Decimal("1.00"))
+        self.assertEqual(user.boost_ads_watched, 1)
+
+    def test_login_reports_cooldown_left(self):
+        self.create_miner(
+            5104,
+            boost_ads_watched=5,
+            boost_multiplier=Decimal("1.00"),
+            last_boost_time=timezone.now() - timedelta(hours=2),
+        )
+
+        response = self.post_json(
+            "/api/login/",
+            {"initData": build_init_data(5104), "username": "boost-5104"},
+        )
+        user_data = response.json()["user"]
+
+        self.assertEqual(user_data["boost_ads_watched"], 5)
+        self.assertEqual(user_data["time_left"], 0)
+        self.assertAlmostEqual(user_data["boost_cooldown_left"], 6 * 3600, delta=10)
+
+    def test_login_resets_legacy_stuck_five_ads(self):
+        self.create_miner(
+            5105,
+            boost_ads_watched=5,
+            boost_multiplier=Decimal("1.00"),
+            last_boost_time=None,
+        )
+
+        response = self.post_json(
+            "/api/login/",
+            {"initData": build_init_data(5105), "username": "boost-5105"},
+        )
+        user_data = response.json()["user"]
+
+        self.assertEqual(user_data["boost_ads_watched"], 0)
+        self.assertEqual(user_data["boost_cooldown_left"], 0)
+        user = User.objects.get(telegram_id=5105)
+        self.assertEqual(user.boost_ads_watched, 0)
