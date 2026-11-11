@@ -27,6 +27,11 @@ ALLOWED_HOSTS = [
     if host.strip()
 ]
 
+# Render بيوفر دومين الخدمة تلقائيًا في RENDER_EXTERNAL_HOSTNAME
+RENDER_HOST = os.getenv('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_HOST and RENDER_HOST not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(RENDER_HOST)
+
 
 # Application definition
 
@@ -187,7 +192,7 @@ MAILERS = {
 
 
 
-# إيقاف حماية CSRF مؤقتاً في التطوير (عشان الـ API يشتغل)
+# DRF: مفيش authentication classes هنا لأن التحقق بيتم من initData تيليجرام جوه الـ views
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [],
     'DEFAULT_PERMISSION_CLASSES': [
