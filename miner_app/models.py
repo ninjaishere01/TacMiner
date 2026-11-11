@@ -19,6 +19,7 @@ class User(models.Model):
     # حقول الإعلانات
     ads_watched_today = models.IntegerField(default=0, verbose_name="إعلانات التفعيل اليوم")
     last_activation_date = models.DateField(null=True, blank=True, verbose_name="تاريخ آخر تفعيل")
+    last_activation_at = models.DateTimeField(null=True, blank=True, verbose_name="وقت تفعيل التعدين")
     
     boost_ads_watched = models.IntegerField(default=0, verbose_name="إعلانات المضاعفة")
     last_boost_time = models.DateTimeField(null=True, blank=True, verbose_name="وقت آخر مضاعفة")

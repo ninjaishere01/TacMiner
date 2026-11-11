@@ -334,7 +334,7 @@ document.addEventListener("DOMContentLoaded", () => {
     .then((res) => res.json())
     .then((data) => {
       if (data.message === "Success") {
-        window.adsActivated = Number(data.user.ads_watched_today) >= 3;
+        window.adsActivated = data.user.mining_active === true;
 
         updateBalanceUI(data.user.balance);
 

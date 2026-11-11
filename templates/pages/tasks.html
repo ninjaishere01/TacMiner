@@ -114,7 +114,7 @@
             <i class="fa-solid fa-tv text-danger"></i>
           </div>
           <div class="task-info">
-            <h6>شاهد لتفعيل تعدين اليوم</h6>
+            <h6>شاهد لتفعيل التعدين (24 ساعة)</h6>
             <div class="task-progress-container">
               <div
                 class="task-progress-bar"
@@ -436,8 +436,76 @@
       }
 
       // ==========================================
-      // 2. دالة إعلانات التفعيل اليومي (3 إعلانات)
+      // 2. دالة إعلانات تفعيل التعدين (3 إعلانات = 24 ساعة)
       // ==========================================
+      function placeActivationTimer(timerElement, activationBtn) {
+        timerElement.style.fontWeight = "bold";
+        timerElement.style.color = "var(--wood-text-dark)";
+        timerElement.style.fontSize = "12px";
+        timerElement.style.lineHeight = "1.35";
+        timerElement.style.textAlign = "center";
+        timerElement.style.flexShrink = "0";
+        timerElement.style.width = "126px";
+        timerElement.style.marginLeft = "8px";
+        if (timerElement.parentElement !== activationBtn.parentElement) {
+          activationBtn.insertAdjacentElement("afterend", timerElement);
+        }
+      }
+
+      function startActivationTimer(secondsLeft) {
+        const activationBtn = document.getElementById("activation-btn");
+        if (!activationBtn) return;
+
+        activationBtn.disabled = true;
+        activationBtn.innerText = "مفعّل";
+
+        let timerElement = document.getElementById("activation-timer");
+        if (!timerElement) {
+          timerElement = document.createElement("div");
+          timerElement.id = "activation-timer";
+        }
+        placeActivationTimer(timerElement, activationBtn);
+
+        if (window.activationTimerInterval) {
+          clearInterval(window.activationTimerInterval);
+          window.activationTimerInterval = null;
+        }
+
+        let timeLeft = Math.max(0, parseInt(secondsLeft, 10) || 0);
+
+        const renderActivationCountdown = () => {
+          const hours = Math.floor(timeLeft / 3600);
+          const minutes = Math.floor((timeLeft % 3600) / 60);
+          const seconds = timeLeft % 60;
+          timerElement.innerText = `⛏️ التعدين مفعّل حتى: ${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+        };
+        renderActivationCountdown();
+
+        window.activationTimerInterval = setInterval(() => {
+          timeLeft--;
+          if (timeLeft <= 0) {
+            clearInterval(window.activationTimerInterval);
+            window.activationTimerInterval = null;
+            timerElement.remove();
+
+            window.adsActivated = false;
+            document.getElementById("activation-watched").innerText = "0";
+            document.getElementById("activation-progress").style.width = "0%";
+            activationBtn.disabled = false;
+            activationBtn.innerText = "شاهد";
+
+            Swal.fire({
+              title: "انتهى التفعيل",
+              text: "انتهت 24 ساعة. شاهد 3 إعلانات لتفعيل التعدين من جديد.",
+              icon: "info",
+              confirmButtonText: "حسناً",
+            });
+          } else {
+            renderActivationCountdown();
+          }
+        }, 1000);
+      }
+
       function watchActivationAd() {
         fetch("/api/watch-ad/", {
           method: "POST",
@@ -467,10 +535,11 @@
               document.getElementById("global-balance").innerText =
                 data.new_balance.toLocaleString("en-US");
 
-              if (watchedCount >= 3) {
+              if (data.mining_active) {
                 window.adsActivated = true;
-                document.getElementById("activation-btn").disabled = true;
-                document.getElementById("activation-btn").innerText = "اكتمل";
+                startActivationTimer(
+                  data.activation_time_left || 24 * 60 * 60,
+                );
               }
 
               Swal.fire({
@@ -481,6 +550,9 @@
                 showConfirmButton: false,
               });
             } else {
+              if (data.activation_time_left > 0) {
+                startActivationTimer(data.activation_time_left);
+              }
               Swal.fire({
                 title: "خطأ",
                 text: data.error,
@@ -780,7 +852,7 @@
                 },
               );
 
-              // --- أ. تحديث إعلانات التفعيل اليومي ---
+              // --- أ. تحديث إعلانات تفعيل التعدين (24 ساعة) ---
               let activationWatchedEl =
                 document.getElementById("activation-watched");
               let activationProgressEl = document.getElementById(
@@ -788,14 +860,18 @@
               );
               let activationBtn = document.getElementById("activation-btn");
 
-              if (activationWatchedEl && activationProgressEl) {
-                let activationCount = user.ads_watched_today || 0;
+              if (activationWatchedEl && activationProgressEl && activationBtn) {
+                let activationCount = user.mining_active
+                  ? 3
+                  : parseInt(user.ads_watched_today, 10) || 0;
                 activationWatchedEl.innerText = activationCount;
                 activationProgressEl.style.width = `${(activationCount / 3) * 100}%`;
 
-                if (activationCount >= 3 && activationBtn) {
-                  activationBtn.disabled = true;
-                  activationBtn.innerText = "اكتمل";
+                if (user.mining_active) {
+                  startActivationTimer(user.activation_time_left || 0);
+                } else {
+                  activationBtn.disabled = false;
+                  activationBtn.innerText = "شاهد";
                 }
               }
 

@@ -17,12 +17,10 @@ import hashlib
 import json
 import logging
 from urllib.parse import parse_qsl
-from zoneinfo import ZoneInfo
 
 
 logger = logging.getLogger(__name__)
 
-CAIRO_TZ = ZoneInfo("Africa/Cairo")
 WITHDRAW_TAC_PER_USDT = Decimal("920")
 
 # حد أقصى لحجم initData عشان نمنع أي payload ضخم
@@ -178,12 +176,65 @@ def calculate_user_production_per_hour(user):
     return Decimal(str(calculate_user_production(user)["per_hour"]))
 
 
+ACTIVATION_WINDOW = timedelta(hours=24)
+
+
+def get_activation_expiry(user):
+    """نهاية نافذة التعدين الحالية (24 ساعة من آخر تفعيل) أو None."""
+    if not user.last_activation_at:
+        return None
+    return user.last_activation_at + ACTIVATION_WINDOW
+
+
+def is_mining_active(user, now=None):
+    now = now or timezone.now()
+    expiry = get_activation_expiry(user)
+    return bool(expiry and now < expiry and user.ads_watched_today >= 3)
+
+
+def get_activation_time_left(user, now=None):
+    now = now or timezone.now()
+    expiry = get_activation_expiry(user)
+    if not expiry or now >= expiry:
+        return 0
+    return int((expiry - now).total_seconds())
+
+
+def ensure_legacy_activation(user, now=None):
+    """يوزرز كانوا مفعّلين قبل إضافة التوقيت: نبدأ لهم نافذة 24 ساعة من الآن."""
+    now = now or timezone.now()
+    if (
+        user.last_activation_at is None
+        and user.ads_watched_today >= 3
+        and user.last_activation_date == now.date()
+    ):
+        user.last_activation_at = now
+        user.save(update_fields=["last_activation_at"])
+        return True
+    return False
+
+
+def effective_activation_ads_count(user, now=None):
+    """عدد إعلانات التفعيل المعروض للفرونت: 3 لو التعدين شغال، 0 لو النافذة خلصت."""
+    now = now or timezone.now()
+    expiry = get_activation_expiry(user)
+    if expiry is None:
+        if user.last_activation_date == now.date():
+            return user.ads_watched_today
+        return 0
+    return 3 if now < expiry else 0
+
+
 def calculate_pending_earnings(user, now=None):
-    """أرباح الفترة اللي فاتت من غير ما نلمس الداتابيز."""
+    """أرباح الفترة اللي فاتت من غير ما نلمس الداتابيز، ومحدودة بنهاية نافذة التفعيل."""
     now = now or timezone.now()
     if not user.last_collected_at:
         return Decimal("0")
-    elapsed_seconds = (now - user.last_collected_at).total_seconds()
+    expiry = get_activation_expiry(user)
+    if expiry is None:
+        return Decimal("0")
+    end = min(now, expiry)
+    elapsed_seconds = (end - user.last_collected_at).total_seconds()
     if elapsed_seconds <= 0:
         return Decimal("0")
     per_second = calculate_user_production_per_hour(user) / Decimal("3600")
@@ -191,20 +242,14 @@ def calculate_pending_earnings(user, now=None):
     return earned if earned > 0 else Decimal("0")
 
 
-def can_collect_today(user, now=None):
-    """نفس شروط جمع الأرباح اليومية: تفعيل النهاردة + 3 إعلانات."""
-    today = (now or timezone.now()).date()
-    return user.last_activation_date == today and user.ads_watched_today >= 3
-
-
 def settle_earnings(user, now=None):
     """
     يقفل أرباح الفترة اللي فاتت بالسرعة الحالية قبل أي ترقية أو بوست.
     لازم يتنادى والمستخدم معمول له select_for_update جوه transaction.
-    لو المستخدم مش مفعّل النهاردة، مفيش تسوية عشان قواعد التفعيل تفضل زي ما هي.
+    الأرباح محدودة بنهاية نافذة التفعيل عشان فترة التوقف ما تحسبش.
     """
     now = now or timezone.now()
-    if not can_collect_today(user, now):
+    if get_activation_expiry(user) is None:
         return Decimal("0")
     earned = calculate_pending_earnings(user, now)
     user.last_collected_at = now
@@ -235,6 +280,9 @@ def login_or_register(request):
         telegram_id=telegram_id,
         defaults={'username': username}
     )
+
+    now = timezone.now()
+    ensure_legacy_activation(user, now)
 
     offline_earnings = 0
     if user.last_collected_at:
@@ -330,7 +378,9 @@ def login_or_register(request):
             "is_partner": user.is_partner,
             "is_wallet_verified": user.is_wallet_verified,
             "wallet_address": user.wallet_address,
-            "ads_watched_today": user.ads_watched_today if user.last_activation_date == timezone.now().date() else 0,
+            "ads_watched_today": effective_activation_ads_count(user, now),
+            "mining_active": is_mining_active(user, now),
+            "activation_time_left": get_activation_time_left(user, now),
             "boost_ads_watched": user.boost_ads_watched,
             "last_boost_time": user.last_boost_time.isoformat() if user.last_boost_time else None,
             "boost_multiplier": float(user.boost_multiplier),
@@ -361,14 +411,19 @@ def collect_gold(request):
     try:
         with transaction.atomic():
             user = User.objects.select_for_update().get(telegram_id=telegram_id)
-            today = timezone.now().date()
-            if user.last_activation_date != today:
-                return Response({"error": "يجب تفعيل التعدين أولاً"}, status=400)
-            ads_today = user.ads_watched_today if user.last_activation_date == today else 0
-            if ads_today < 3:
-                return Response({"error": "يجب مشاهدة 3 إعلانات لتفعيل التعدين اليوم"}, status=400)
-
             now = timezone.now()
+            ensure_legacy_activation(user, now)
+
+            if not is_mining_active(user, now):
+                expiry = get_activation_expiry(user)
+                if expiry and now >= expiry:
+                    return Response({
+                        "error": "انتهى تفعيل التعدين. شاهد 3 إعلانات لتفعيله 24 ساعة من جديد"
+                    }, status=400)
+                return Response({
+                    "error": "يجب مشاهدة 3 إعلانات لتفعيل التعدين"
+                }, status=400)
+
             earned = settle_earnings(user, now)
 
         return Response({
@@ -408,6 +463,7 @@ def upgrade_worker(request):
             )
 
             # نقفل أرباح الفترة اللي فاتت بسرعة الترقية القديمة قبل ما نطقّي السرعه
+            ensure_legacy_activation(user)
             settle_earnings(user, timezone.now())
 
             current_level = user_worker.level
@@ -597,27 +653,55 @@ def watch_ad(request):
             user = User.objects.select_for_update().get(telegram_id=telegram_id)
             now = timezone.now()
             today = now.date()
+            ensure_legacy_activation(user, now)
 
-            # --- 1. إعلانات التفعيل اليومي ---
+            # --- 1. إعلانات تفعيل التعدين (3 إعلانات = نافذة 24 ساعة) ---
             if ad_type == 'activation':
-                if user.last_activation_date != today:
-                    user.ads_watched_today = 0
-                    user.last_activation_date = today
-
-                if user.ads_watched_today < 3:
-                    user.ads_watched_today += 1
-                    if user.ads_watched_today >= 3:
-                        user.last_activation_date = now.date()
-                    reward = Decimal('0')
-                    user.save(update_fields=["ads_watched_today", "last_activation_date"])
+                expiry = get_activation_expiry(user)
+                if expiry and now < expiry:
+                    time_left = int((expiry - now).total_seconds())
                     return Response({
-                        "message": "Ad Watched!", 
-                        "new_balance": float(user.balance),
-                        "watched_count": user.ads_watched_today,
-                        "reward": float(reward)
-                    })
+                        "error": f"التعدين مفعّل بالفعل. باقي {time_left} ثانية.",
+                        "activation_time_left": time_left,
+                    }, status=400)
+
+                if expiry:
+                    # النافذة القديمة انتهت: نقفل أرباحها لحد وقت الانتهاء فقط
+                    settle_earnings(user, now)
+
+                # نبدأ دورة جديدة لو النافذة القديمة خلصت أو لو الإعلانات من يوم فات
+                if expiry or user.last_activation_date != today:
+                    user.ads_watched_today = 0
+
+                user.last_activation_at = None
+                user.last_activation_date = today
+                user.ads_watched_today += 1
+
+                if user.ads_watched_today >= 3:
+                    user.last_activation_at = now
+                    user.last_collected_at = now
+                    user.save(update_fields=[
+                        "ads_watched_today",
+                        "last_activation_at",
+                        "last_activation_date",
+                        "last_collected_at",
+                    ])
                 else:
-                    return Response({"error": "لقد أكملت إعلانات التفعيل اليوم"}, status=400)
+                    user.save(update_fields=[
+                        "ads_watched_today",
+                        "last_activation_at",
+                        "last_activation_date",
+                    ])
+
+                activation_active = user.ads_watched_today >= 3
+                return Response({
+                    "message": "Ad Watched!",
+                    "new_balance": float(user.balance),
+                    "watched_count": user.ads_watched_today,
+                    "reward": 0.0,
+                    "mining_active": activation_active,
+                    "activation_time_left": int(ACTIVATION_WINDOW.total_seconds()) if activation_active else 0,
+                })
 
             # --- 2. إعلانات المضاعفة (Boost) ---
             elif ad_type == 'boost':
@@ -774,25 +858,6 @@ def request_withdraw(request):
 
             if withdraw_amount < 5:
                 return Response({"error": "الحد الأدنى للسحب 5 USDT"}, status=400)
-
-            # قاعدة السحب: طلب واحد فقط لكل مستخدم في اليوم (بتوقيت القاهرة)
-            cairo_now = timezone.now().astimezone(CAIRO_TZ)
-            day_start_local = cairo_now.replace(hour=0, minute=0, second=0, microsecond=0)
-            day_end_local = day_start_local + timedelta(days=1)
-            already_requested_today = WithdrawRequest.objects.filter(
-                user=user,
-                created_at__gte=day_start_local,
-                created_at__lt=day_end_local,
-            ).exists()
-            if already_requested_today:
-                next_request_text = day_end_local.strftime("%Y-%m-%d %H:%M")
-                return Response({
-                    "error": (
-                        "مسموح بطلب سحب واحد فقط في اليوم. "
-                        f"يمكنك المحاولة مرة أخرى بعد {next_request_text} بتوقيت القاهرة."
-                    ),
-                    "next_request_at": day_end_local.isoformat(),
-                }, status=400)
 
             if user.usdt_balance < withdraw_amount:
                 return Response({"error": "رصيدك غير كافي"}, status=400)

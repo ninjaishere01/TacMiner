@@ -266,7 +266,12 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.message === "Wallet Verified!") {
-                        Swal.fire({ title: "تم الربط!", text: "تم ربط محفظتك بنجاح.", icon: "success" });
+                        // التنبيه يظهر مرة واحدة وقت الربط فقط، مش كل مرة نفتح البروفايل
+                        const alertKey = "walletLinkAlertShownFor";
+                        if (localStorage.getItem(alertKey) !== walletAddress) {
+                            Swal.fire({ title: "تم الربط!", text: "تم ربط محفظتك بنجاح.", icon: "success" });
+                            localStorage.setItem(alertKey, walletAddress);
+                        }
                         const badge = document.getElementById("verified-badge");
                         if (badge) badge.classList.remove("d-none");
                     }
@@ -274,6 +279,7 @@
             }
             if (walletInfo === null) {
                 // المستخدم فصل المحفظة
+                localStorage.removeItem("walletLinkAlertShownFor");
                 const badge = document.getElementById("verified-badge");
                 if (badge) badge.classList.add("d-none");
 

@@ -24,7 +24,6 @@ from miner_app.views import complete_withdraw_request, reject_withdraw_request
 
 TEST_BOT_TOKEN = "123456:test-token"
 TEST_WEBHOOK_SECRET = "test-webhook-secret"
-WITHDRAW_DAY_ERROR = "مسموح بطلب سحب واحد فقط في اليوم"
 
 
 def build_init_data(telegram_id, auth_date=None, token=TEST_BOT_TOKEN):
@@ -184,22 +183,20 @@ class WithdrawRuleTests(TestCase):
         return user
 
     @patch("miner_app.views.send_admin_notification")
-    def test_only_one_withdrawal_per_cairo_day(self, notification_mock):
-        user = self.create_eligible_user()
+    def test_withdrawals_are_allowed_multiple_times_per_day(self, notification_mock):
+        user = self.create_eligible_user(usdt_balance=Decimal("10"))
         payload = {"initData": build_init_data(user.telegram_id), "amount": 5}
 
         first = self.post_json("/api/request-withdraw/", payload)
         second = self.post_json("/api/request-withdraw/", payload)
 
         self.assertEqual(first.status_code, 200)
-        self.assertEqual(second.status_code, 400)
-        self.assertIn(WITHDRAW_DAY_ERROR, second.json()["error"])
-        self.assertIn("next_request_at", second.json())
+        self.assertEqual(second.status_code, 200)
         self.assertEqual(
-            WithdrawRequest.objects.filter(user=user, status="pending").count(), 1
+            WithdrawRequest.objects.filter(user=user, status="pending").count(), 2
         )
         user.refresh_from_db()
-        self.assertEqual(user.usdt_balance, Decimal("5"))
+        self.assertEqual(user.usdt_balance, Decimal("0"))
 
     def test_reject_refunds_tac_exactly_once(self):
         user = User.objects.create(telegram_id=2101, username="refund-user")
@@ -397,3 +394,190 @@ class AdminWithdrawActionTests(TestCase):
         self.assertEqual(self.withdrawal.status, "completed")
         self.assertIn("TX-ADMIN-1", self.withdrawal.note)
         announce_mock.assert_called_once()
+
+
+@override_settings(
+    TELEGRAM_BOT_TOKEN=TEST_BOT_TOKEN,
+    TELEGRAM_WEBHOOK_SECRET=TEST_WEBHOOK_SECRET,
+    TELEGRAM_INITDATA_MAX_AGE_SECONDS=86400,
+    SECURE_SSL_REDIRECT=False,
+    ALLOWED_HOSTS=["testserver"],
+)
+class ActivationCycleTests(TestCase):
+    def post_json(self, path, payload, **extra):
+        return self.client.post(
+            path,
+            data=json.dumps(payload),
+            content_type="application/json",
+            **extra,
+        )
+
+    def create_miner(self, telegram_id, **kwargs):
+        defaults = {
+            "username": f"miner-{telegram_id}",
+            "last_collected_at": timezone.now() - timedelta(hours=1),
+        }
+        defaults.update(kwargs)
+        return User.objects.create(telegram_id=telegram_id, **defaults)
+
+    def add_worker(self, user):
+        worker = Worker.objects.create(
+            name="Cycle Miner",
+            icon="fa-hammer",
+            image="/static/images/1.png",
+            base_price=Decimal("100"),
+        )
+        UserWorker.objects.create(user=user, worker=worker, level=1)
+
+    def watch_activation(self, telegram_id):
+        return self.post_json(
+            "/api/watch-ad/",
+            {
+                "initData": build_init_data(telegram_id),
+                "ad_type": "activation",
+            },
+        )
+
+    def test_three_ads_start_24_hour_window(self):
+        self.create_miner(4101)
+
+        for expected in (1, 2):
+            response = self.watch_activation(4101)
+            body = response.json()
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(body["watched_count"], expected)
+            self.assertFalse(body["mining_active"])
+
+        response = self.watch_activation(4101)
+        body = response.json()
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(body["mining_active"])
+        self.assertAlmostEqual(body["activation_time_left"], 86400, delta=5)
+
+        user = User.objects.get(telegram_id=4101)
+        self.assertEqual(user.ads_watched_today, 3)
+        self.assertIsNotNone(user.last_activation_at)
+
+        collect = self.post_json(
+            "/api/collect/", {"initData": build_init_data(4101)}
+        )
+        self.assertEqual(collect.status_code, 200)
+
+    def test_mining_stops_after_24_hours(self):
+        expired_at = timezone.now() - timedelta(hours=24, minutes=1)
+        user = self.create_miner(
+            4102,
+            ads_watched_today=3,
+            last_activation_date=timezone.now().date(),
+            last_activation_at=expired_at,
+            last_collected_at=expired_at,
+        )
+        self.add_worker(user)
+        balance_before = user.balance
+
+        response = self.post_json(
+            "/api/collect/", {"initData": build_init_data(4102)}
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("انتهى", response.json()["error"])
+        user.refresh_from_db()
+        self.assertEqual(user.balance, balance_before)
+
+    def test_rewatching_ads_credits_previous_window_until_expiry_only(self):
+        expiry = timezone.now() - timedelta(hours=2)
+        started = expiry - timedelta(hours=24)
+        user = self.create_miner(
+            4103,
+            ads_watched_today=3,
+            last_activation_date=started.date(),
+            last_activation_at=started,
+            last_collected_at=started,
+        )
+        self.add_worker(user)
+
+        first = self.watch_activation(4103)
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(first.json()["watched_count"], 1)
+        self.assertFalse(first.json()["mining_active"])
+
+        user.refresh_from_db()
+        self.assertIsNone(user.last_activation_at)
+        # 24 ساعة تفعيل فقط بدون احتساب فترة التوقف
+        self.assertAlmostEqual(float(user.balance), 24 * 1.1, delta=0.05)
+
+        self.watch_activation(4103)
+        third = self.watch_activation(4103)
+        self.assertEqual(third.status_code, 200)
+        self.assertTrue(third.json()["mining_active"])
+        self.assertAlmostEqual(third.json()["activation_time_left"], 86400, delta=5)
+
+        user.refresh_from_db()
+        self.assertEqual(user.ads_watched_today, 3)
+        self.assertAlmostEqual(
+            (timezone.now() - user.last_activation_at).total_seconds(),
+            0,
+            delta=10,
+        )
+
+    def test_cannot_watch_activation_while_active(self):
+        now = timezone.now()
+        user = self.create_miner(
+            4104,
+            ads_watched_today=3,
+            last_activation_date=now.date(),
+            last_activation_at=now - timedelta(hours=1),
+            last_collected_at=now - timedelta(hours=1),
+        )
+
+        response = self.watch_activation(4104)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertGreater(response.json()["activation_time_left"], 0)
+        user.refresh_from_db()
+        self.assertEqual(user.ads_watched_today, 3)
+        self.assertIsNotNone(user.last_activation_at)
+
+    def test_login_reports_active_window(self):
+        now = timezone.now()
+        self.create_miner(
+            4105,
+            ads_watched_today=3,
+            last_activation_date=now.date(),
+            last_activation_at=now - timedelta(hours=1),
+            last_collected_at=now - timedelta(hours=1),
+        )
+
+        response = self.post_json(
+            "/api/login/",
+            {"initData": build_init_data(4105), "username": "miner-4105"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        user_data = response.json()["user"]
+        self.assertTrue(user_data["mining_active"])
+        self.assertEqual(user_data["ads_watched_today"], 3)
+        self.assertAlmostEqual(
+            user_data["activation_time_left"], 23 * 3600, delta=10
+        )
+
+    def test_legacy_active_user_gets_24_hour_window_on_login(self):
+        self.create_miner(
+            4106,
+            ads_watched_today=3,
+            last_activation_date=timezone.now().date(),
+            last_activation_at=None,
+        )
+
+        response = self.post_json(
+            "/api/login/",
+            {"initData": build_init_data(4106), "username": "miner-4106"},
+        )
+
+        user_data = response.json()["user"]
+        self.assertTrue(user_data["mining_active"])
+        user = User.objects.get(telegram_id=4106)
+        self.assertIsNotNone(user.last_activation_at)
+        self.assertAlmostEqual(
+            user_data["activation_time_left"], 86400, delta=10
+        )
