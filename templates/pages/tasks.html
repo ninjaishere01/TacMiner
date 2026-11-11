@@ -456,8 +456,8 @@
         const activationBtn = document.getElementById("activation-btn");
         if (!activationBtn) return;
 
-        activationBtn.disabled = true;
-        activationBtn.innerText = "مفعّل";
+        // نخفي الزرار أثناء التفعيل، والعداد هو اللي يظهر مكانه
+        activationBtn.style.display = "none";
 
         let timerElement = document.getElementById("activation-timer");
         if (!timerElement) {
@@ -491,6 +491,8 @@
             window.adsActivated = false;
             document.getElementById("activation-watched").innerText = "0";
             document.getElementById("activation-progress").style.width = "0%";
+            // نرجّع الزرار تاني عشان المستخدم يفعّل من جديد
+            activationBtn.style.display = "block";
             activationBtn.disabled = false;
             activationBtn.innerText = "شاهد";
 
@@ -870,6 +872,7 @@
                 if (user.mining_active) {
                   startActivationTimer(user.activation_time_left || 0);
                 } else {
+                  activationBtn.style.display = "block";
                   activationBtn.disabled = false;
                   activationBtn.innerText = "شاهد";
                 }

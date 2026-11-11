@@ -165,6 +165,12 @@
                 amountClass = "failed";
               }
 
+              const note = req.note ? req.note.trim() : "";
+              const isPaymentReference = note.startsWith("مرجع الدفع");
+              const noteHtml = note
+                ? `<span style="color: ${isPaymentReference ? "#4caf50" : "#ff5252"}; font-size: 11px; font-weight: bold; margin-top: 2px;">${isPaymentReference ? "" : "السبب: "}${escapeHtml(note)}</span>`
+                : "";
+
               html += `
                 <div class="transaction-item">
                   <div class="trx-info">
@@ -172,7 +178,7 @@
                     <div class="trx-details">
                       <span class="trx-title">سحب USDT - ${statusText}</span>
                       <span class="trx-date">${req.date}</span>
-                      ${req.note ? `<span style="color: #ff5252; font-size: 11px; font-weight: bold; margin-top: 2px;">السبب: ${escapeHtml(req.note)}</span>` : ''}
+                      ${noteHtml}
                     </div>
                   </div>
                   <div class="trx-amount ${amountClass}">${req.amount.toFixed(2)}</div>
