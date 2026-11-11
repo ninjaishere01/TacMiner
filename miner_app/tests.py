@@ -707,3 +707,149 @@ class BoostCycleTests(TestCase):
         self.assertEqual(user_data["boost_cooldown_left"], 0)
         user = User.objects.get(telegram_id=5105)
         self.assertEqual(user.boost_ads_watched, 0)
+
+
+class FakeTelegramResponse:
+    def __init__(self, ok=True, status_code=200):
+        self.ok = ok
+        self.status_code = status_code
+
+    def json(self):
+        return {"ok": self.ok}
+
+
+TEST_WEBAPP_URL = "https://example.test/app"
+
+
+@override_settings(
+    TELEGRAM_BOT_TOKEN=TEST_BOT_TOKEN,
+    TELEGRAM_WEBHOOK_SECRET=TEST_WEBHOOK_SECRET,
+    WEBAPP_URL=TEST_WEBAPP_URL,
+    SECURE_SSL_REDIRECT=False,
+    ALLOWED_HOSTS=["testserver"],
+)
+class TelegramStartWelcomeTests(TestCase):
+    expected_caption = (
+        "💎 TAC MINING 💎\n\n"
+        "Your mining crew is ready!\n\n"
+        "⛏ Mine TAC every day\n"
+        "⚒ Upgrade your workers to earn more\n"
+        "🎁 Complete tasks & claim daily rewards\n"
+        "💸 Withdraw safely at 4600 TAC ($5)\n\n"
+        "Start mining now 👇"
+    )
+
+    def post_update(self, update):
+        return self.client.post(
+            "/api/telegram-webhook/",
+            data=json.dumps(update),
+            content_type="application/json",
+            HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN=TEST_WEBHOOK_SECRET,
+        )
+
+    def start_update(self, text="/start", chat_type="private", chat_id=7001):
+        return {
+            "update_id": 1,
+            "message": {
+                "message_id": 10,
+                "text": text,
+                "chat": {"id": chat_id, "type": chat_type},
+                "from": {"id": chat_id, "first_name": "Test"},
+            },
+        }
+
+    @patch("miner_app.views.threading.Thread", ImmediateThread)
+    @patch("miner_app.views.requests.post")
+    def test_start_sends_photo_with_caption_and_webapp_button(self, post_mock):
+        post_mock.return_value = FakeTelegramResponse(True)
+
+        response = self.post_update(self.start_update())
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(post_mock.call_count, 1)
+        self.assertTrue(post_mock.call_args.args[0].endswith("/sendPhoto"))
+        kwargs = post_mock.call_args.kwargs
+        self.assertEqual(kwargs["data"]["chat_id"], 7001)
+        self.assertEqual(kwargs["data"]["caption"], self.expected_caption)
+        self.assertNotIn("parse_mode", kwargs["data"])
+        self.assertEqual(kwargs["files"]["photo"][0], "welcome.jpg")
+
+        markup = json.loads(kwargs["data"]["reply_markup"])
+        button = markup["inline_keyboard"][0][0]
+        self.assertEqual(button["text"], "⛏ Start Mining")
+        self.assertEqual(button["web_app"]["url"], TEST_WEBAPP_URL)
+
+    @patch("miner_app.views.threading.Thread", ImmediateThread)
+    @patch("miner_app.views.requests.post")
+    def test_start_falls_back_to_text_when_photo_fails(self, post_mock):
+        post_mock.side_effect = [
+            Exception("telegram unavailable"),
+            FakeTelegramResponse(True),
+        ]
+
+        response = self.post_update(self.start_update())
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(post_mock.call_count, 2)
+        self.assertTrue(post_mock.call_args_list[0].args[0].endswith("/sendPhoto"))
+        self.assertTrue(post_mock.call_args_list[1].args[0].endswith("/sendMessage"))
+
+        kwargs = post_mock.call_args_list[1].kwargs
+        self.assertEqual(kwargs["json"]["text"], self.expected_caption)
+        self.assertNotIn("parse_mode", kwargs["json"])
+        button = kwargs["json"]["reply_markup"]["inline_keyboard"][0][0]
+        self.assertEqual(button["text"], "⛏ Start Mining")
+        self.assertEqual(button["web_app"]["url"], TEST_WEBAPP_URL)
+
+    @patch("miner_app.views.threading.Thread", ImmediateThread)
+    @patch("miner_app.views.requests.post")
+    @patch("miner_app.views.os.path.isfile", return_value=False)
+    def test_start_falls_back_to_text_when_photo_file_is_missing(
+        self, _isfile_mock, post_mock
+    ):
+        post_mock.return_value = FakeTelegramResponse(True)
+
+        response = self.post_update(self.start_update())
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(post_mock.call_count, 1)
+        self.assertTrue(post_mock.call_args.args[0].endswith("/sendMessage"))
+        self.assertEqual(
+            post_mock.call_args.kwargs["json"]["text"], self.expected_caption
+        )
+
+    @patch("miner_app.views.threading.Thread", ImmediateThread)
+    @patch("miner_app.views.requests.post")
+    def test_start_with_referral_keeps_pending_referral_and_sends_welcome(
+        self, post_mock
+    ):
+        post_mock.return_value = FakeTelegramResponse(True)
+
+        response = self.post_update(self.start_update(text="/start ref_9001"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(
+            PendingReferral.objects.filter(
+                telegram_id=7001, referral_id=9001
+            ).exists()
+        )
+        self.assertEqual(post_mock.call_count, 1)
+        self.assertTrue(post_mock.call_args.args[0].endswith("/sendPhoto"))
+
+    @patch("miner_app.views.threading.Thread", ImmediateThread)
+    @patch("miner_app.views.requests.post")
+    def test_other_messages_are_ignored(self, post_mock):
+        response = self.post_update(self.start_update(text="hello"))
+
+        self.assertEqual(response.status_code, 200)
+        post_mock.assert_not_called()
+
+    @patch("miner_app.views.threading.Thread", ImmediateThread)
+    @patch("miner_app.views.requests.post")
+    def test_group_start_is_ignored(self, post_mock):
+        response = self.post_update(
+            self.start_update(chat_type="supergroup", chat_id=-1001)
+        )
+
+        self.assertEqual(response.status_code, 200)
+        post_mock.assert_not_called()

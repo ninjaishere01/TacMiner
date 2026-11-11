@@ -16,6 +16,7 @@ import hmac
 import hashlib
 import json
 import logging
+import os
 from urllib.parse import parse_qsl
 
 
@@ -1085,6 +1086,80 @@ def send_public_announcement(username, amount, wallet_address):
 
 
 
+WELCOME_CAPTION = (
+    "💎 TAC MINING 💎\n\n"
+    "Your mining crew is ready!\n\n"
+    "⛏ Mine TAC every day\n"
+    "⚒ Upgrade your workers to earn more\n"
+    "🎁 Complete tasks & claim daily rewards\n"
+    "💸 Withdraw safely at 4600 TAC ($5)\n\n"
+    "Start mining now 👇"
+)
+
+
+def _start_welcome_markup():
+    webapp_url = getattr(settings, "WEBAPP_URL", "") or "https://tacminer.onrender.com"
+    return {
+        "inline_keyboard": [
+            [{"text": "⛏ Start Mining", "web_app": {"url": webapp_url}}]
+        ]
+    }
+
+
+def _send_start_welcome_text(chat_id, reply_markup):
+    url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage"
+    response = requests.post(
+        url,
+        json={
+            "chat_id": chat_id,
+            "text": WELCOME_CAPTION,
+            "reply_markup": reply_markup,
+        },
+        timeout=15,
+    )
+    if not response.json().get("ok"):
+        logger.warning("Telegram sendMessage for /start welcome returned not ok")
+
+
+def send_start_welcome(chat_id):
+    """يبعت ترحيب /start بصورة، ولو الصورة فشلت يبعت نفس النص. ما بيرفعش استثناء."""
+    if not settings.TELEGRAM_BOT_TOKEN:
+        logger.warning("TELEGRAM_BOT_TOKEN is not configured; skipping /start welcome")
+        return
+
+    reply_markup = _start_welcome_markup()
+    photo_path = os.path.join(
+        settings.BASE_DIR, "backend_core", "static", "images", "welcome.jpg"
+    )
+
+    try:
+        if not os.path.isfile(photo_path):
+            raise FileNotFoundError(photo_path)
+
+        url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendPhoto"
+        with open(photo_path, "rb") as photo:
+            response = requests.post(
+                url,
+                data={
+                    "chat_id": chat_id,
+                    "caption": WELCOME_CAPTION,
+                    "reply_markup": json.dumps(reply_markup),
+                },
+                files={"photo": ("welcome.jpg", photo, "image/jpeg")},
+                timeout=20,
+            )
+        if not response.json().get("ok"):
+            raise RuntimeError("Telegram sendPhoto returned not ok")
+        return
+    except Exception:
+        logger.exception("Failed to send /start welcome photo; falling back to text")
+
+    try:
+        _send_start_welcome_text(chat_id, reply_markup)
+    except Exception:
+        logger.exception("Failed to send /start welcome text")
+
+
 def _telegram_start_payload(text):
     """يطلع الـ payload من رسالة زي /start ref_123 أو /start@Bot ref_123."""
     parts = (text or "").strip().split()
@@ -1113,7 +1188,12 @@ def telegram_webhook(request):
 
     try:
         message = request.data.get("message") or request.data.get("edited_message") or {}
-        if isinstance(message, dict):
+    except Exception:
+        logger.exception("telegram_webhook failed to read update")
+        message = {}
+
+    if isinstance(message, dict):
+        try:
             payload = _telegram_start_payload(message.get("text") or "")
             from_user = message.get("from") or {}
             raw_telegram_id = from_user.get("id") if isinstance(from_user, dict) else None
@@ -1125,8 +1205,31 @@ def telegram_webhook(request):
                         telegram_id=telegram_id,
                         defaults={"referral_id": referrer_id},
                     )
+        except Exception:
+            logger.exception("telegram_webhook failed to process update")
+
+    try:
+        start_message = request.data.get("message")
+        if isinstance(start_message, dict):
+            chat = start_message.get("chat") or {}
+            text = (start_message.get("text") or "").strip()
+            parts = text.split()
+            command = parts[0].split("@", 1)[0].lower() if parts else ""
+            if (
+                command == "/start"
+                and isinstance(chat, dict)
+                and chat.get("type") == "private"
+            ):
+                chat_id = chat.get("id")
+                if chat_id not in (None, ""):
+                    threading.Thread(
+                        target=send_start_welcome,
+                        args=(chat_id,),
+                        daemon=True,
+                    ).start()
     except Exception:
-        logger.exception("telegram_webhook failed to process update")
+        logger.exception("telegram_webhook failed to queue /start welcome")
+
     return Response({"ok": True}, status=200)
 
 

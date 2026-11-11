@@ -208,6 +208,7 @@ TELEGRAM_WEBHOOK_SECRET = os.getenv('TELEGRAM_WEBHOOK_SECRET')
 TELEGRAM_INITDATA_MAX_AGE_SECONDS = int(
     os.getenv('TELEGRAM_INITDATA_MAX_AGE_SECONDS', '86400')
 )
+WEBAPP_URL = os.getenv('WEBAPP_URL', 'https://tacminer.onrender.com')
 
 
 LOGGING = {
