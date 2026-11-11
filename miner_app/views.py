@@ -876,7 +876,7 @@ def request_withdraw(request):
             user.usdt_balance -= withdraw_amount
             user.save(update_fields=["usdt_balance"])
 
-            WithdrawRequest.objects.create(
+            withdraw_request = WithdrawRequest.objects.create(
                 user=user,
                 amount=withdraw_amount,
                 wallet_address=wallet_address,
@@ -884,6 +884,9 @@ def request_withdraw(request):
             )
             new_usdt_balance = float(user.usdt_balance)
             username = user.username
+            tac_amount = (withdraw_amount * WITHDRAW_TAC_PER_USDT).quantize(
+                Decimal("0.00000001")
+            )
 
         thread_admin = threading.Thread(
             target=send_admin_notification,
@@ -891,6 +894,20 @@ def request_withdraw(request):
             daemon=True,
         )
         thread_admin.start()
+
+        thread_proof = threading.Thread(
+            target=send_withdrawal_proof_notification,
+            args=(
+                username,
+                tac_amount,
+                withdraw_amount,
+                withdraw_request.pk,
+                wallet_address,
+                withdraw_request.created_at,
+            ),
+            daemon=True,
+        )
+        thread_proof.start()
 
         return Response({
             "message": "Withdraw Request Submitted!",
@@ -1051,6 +1068,103 @@ def send_admin_notification(username, amount, wallet_address):
 
 
 
+
+
+def mask_username(username):
+    """يخفي جزء من الاسم للخصوصية: أول 3 حروف + ***."""
+    name = (username or "").strip()
+    if not name:
+        return "Anonymous"
+    return f"{name[:3]}***"
+
+
+def _mask_wallet(wallet_address):
+    value = (wallet_address or "").strip()
+    if not value:
+        return "—"
+    if len(value) <= 12:
+        return value
+    return f"{value[:8]}...{value[-4:]}"
+
+
+WITHDRAWAL_STATUS_LABELS = {
+    "pending": "⏳ قيد المراجعة",
+    "completed": "✅ مدفوعة",
+    "rejected": "❌ مرفوضة",
+}
+
+WITHDRAWAL_PROOF_HEADERS = {
+    "pending": "💎 TAC MINING — طلب سحب جديد",
+    "completed": "💎 TAC MINING — عملية سحب مدفوعة",
+    "rejected": "💎 TAC MINING — طلب سحب مرفوض",
+}
+
+
+def _withdrawal_proof_text(
+    username,
+    tac_amount,
+    usdt_amount,
+    request_id,
+    wallet_address="",
+    created_at=None,
+    status="pending",
+):
+    tac_display = f"{tac_amount:,.2f}".rstrip("0").rstrip(".")
+    usdt_display = f"{usdt_amount:,.2f}"
+    created_at = created_at or timezone.now()
+    date_display = timezone.localtime(created_at).strftime("%d/%m/%Y - %H:%M")
+    status_label = WITHDRAWAL_STATUS_LABELS.get(status, status)
+    header = WITHDRAWAL_PROOF_HEADERS.get(status, "💎 TAC MINING — سحب")
+
+    return (
+        f"{header}\n"
+        "━━━━━━━━━━━━━━━━━━━━\n\n"
+        f"🆔 رقم العملية: #{request_id}\n"
+        f"👤 المستخدم: {mask_username(username)}\n"
+        f"💎 الكمية: {tac_display} TAC\n"
+        f"💵 القيمة: ${usdt_display}\n"
+        f"🔗 المحفظة: {_mask_wallet(wallet_address)}\n"
+        f"🕒 التاريخ: {date_display}\n"
+        f"📌 الحالة: {status_label}\n\n"
+        "━━━━━━━━━━━━━━━━━━━━"
+    )
+
+
+def send_withdrawal_proof_notification(
+    username,
+    tac_amount,
+    usdt_amount,
+    request_id,
+    wallet_address="",
+    created_at=None,
+    status="pending",
+):
+    """إشعار سحب في قناة السحوبات (قيد المراجعة أو مدفوعة)."""
+    chat_id = getattr(settings, "TELEGRAM_WITHDRAWAL_GROUP_ID", "")
+    if not chat_id or not settings.TELEGRAM_BOT_TOKEN:
+        return
+
+    message = _withdrawal_proof_text(
+        username,
+        tac_amount,
+        usdt_amount,
+        request_id,
+        wallet_address=wallet_address,
+        created_at=created_at,
+        status=status,
+    )
+    payload = {
+        "chat_id": chat_id,
+        "text": message,
+    }
+
+    url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage"
+    try:
+        response = requests.post(url, json=payload, timeout=10)
+        if not response.json().get("ok"):
+            logger.warning("Telegram withdrawal proof message returned not ok")
+    except Exception:
+        logger.exception("Failed to send withdrawal proof notification")
 
 
 # 2. دالة إرسال إعلان لقناة الجمهور (بتتنادى بعد ما الأدمن يعلّم الطلب كمدفوع)

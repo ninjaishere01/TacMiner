@@ -19,7 +19,11 @@ from miner_app.models import (
     Worker,
     WithdrawRequest,
 )
-from miner_app.views import complete_withdraw_request, reject_withdraw_request
+from miner_app.views import (
+    complete_withdraw_request,
+    reject_withdraw_request,
+    send_withdrawal_proof_notification,
+)
 
 
 TEST_BOT_TOKEN = "123456:test-token"
@@ -182,8 +186,12 @@ class WithdrawRuleTests(TestCase):
             )
         return user
 
+    @patch("miner_app.views.threading.Thread", ImmediateThread)
+    @patch("miner_app.views.send_withdrawal_proof_notification")
     @patch("miner_app.views.send_admin_notification")
-    def test_withdrawals_are_allowed_multiple_times_per_day(self, notification_mock):
+    def test_withdrawals_are_allowed_multiple_times_per_day(
+        self, notification_mock, proof_mock
+    ):
         user = self.create_eligible_user(usdt_balance=Decimal("10"))
         payload = {"initData": build_init_data(user.telegram_id), "amount": 5}
 
@@ -197,6 +205,23 @@ class WithdrawRuleTests(TestCase):
         )
         user.refresh_from_db()
         self.assertEqual(user.usdt_balance, Decimal("0"))
+        self.assertEqual(proof_mock.call_count, 2)
+        (
+            _,
+            tac_amount,
+            usdt_amount,
+            request_id,
+            wallet_address,
+            created_at,
+        ) = proof_mock.call_args_list[0].args
+        self.assertEqual(tac_amount, Decimal("4600.00000000"))
+        self.assertEqual(usdt_amount, Decimal("5"))
+        self.assertEqual(wallet_address, "EQTestWalletAddress")
+        self.assertIsNotNone(created_at)
+        self.assertEqual(
+            request_id,
+            WithdrawRequest.objects.filter(user=user).order_by("id").first().pk,
+        )
 
     def test_reject_refunds_tac_exactly_once(self):
         user = User.objects.create(telegram_id=2101, username="refund-user")
@@ -218,9 +243,13 @@ class WithdrawRuleTests(TestCase):
         self.assertEqual(withdrawal.note, "عنوان غير صالح")
         self.assertEqual(user.balance, Decimal("4600.00000000"))
 
+    @patch("miner_app.signals.threading.Thread", ImmediateThread)
+    @patch("miner_app.views.send_withdrawal_proof_notification")
     @patch("miner_app.views.threading.Thread", ImmediateThread)
     @patch("miner_app.views.send_public_announcement")
-    def test_complete_announces_only_after_paid_and_once(self, announce_mock):
+    def test_complete_announces_only_after_paid_and_once(
+        self, announce_mock, proof_mock
+    ):
         user = User.objects.create(telegram_id=2201, username="paid-user")
         withdrawal = WithdrawRequest.objects.create(
             user=user,
@@ -240,6 +269,8 @@ class WithdrawRuleTests(TestCase):
         announce_mock.assert_called_once_with(
             "paid-user", 7.5, "EQTestWalletAddress"
         )
+        proof_mock.assert_called_once()
+        self.assertEqual(proof_mock.call_args.args[6], "completed")
 
 
 @override_settings(
@@ -853,3 +884,187 @@ class TelegramStartWelcomeTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         post_mock.assert_not_called()
+
+
+@override_settings(
+    TELEGRAM_BOT_TOKEN=TEST_BOT_TOKEN,
+    TELEGRAM_WEBHOOK_SECRET=TEST_WEBHOOK_SECRET,
+    TELEGRAM_WITHDRAWAL_GROUP_ID="@Tac_mining_withdrawal",
+    SECURE_SSL_REDIRECT=False,
+    ALLOWED_HOSTS=["testserver"],
+)
+class WithdrawalProofNotificationTests(TestCase):
+    def post_json(self, path, payload, **extra):
+        return self.client.post(
+            path,
+            data=json.dumps(payload),
+            content_type="application/json",
+            **extra,
+        )
+
+    @patch("miner_app.views.requests.post")
+    def test_proof_message_masks_username_and_shows_amounts(self, post_mock):
+        post_mock.return_value = FakeTelegramResponse(True)
+
+        send_withdrawal_proof_notification(
+            "CryptoMiner", Decimal("4600.00000000"), Decimal("5"), 12
+        )
+
+        self.assertEqual(post_mock.call_count, 1)
+        kwargs = post_mock.call_args.kwargs
+        self.assertEqual(kwargs["json"]["chat_id"], "@Tac_mining_withdrawal")
+        text = kwargs["json"]["text"]
+        self.assertIn("Cry***", text)
+        self.assertNotIn("CryptoMiner", text)
+        self.assertIn("4,600 TAC", text)
+        self.assertIn("$5.00", text)
+        self.assertIn("#12", text)
+        self.assertIn("قيد المراجعة", text)
+        self.assertIn("طلب سحب جديد", text)
+        self.assertNotIn("القاهرة", text)
+        self.assertNotIn("parse_mode", kwargs["json"])
+        self.assertNotIn("reply_markup", kwargs["json"])
+
+    @patch("miner_app.views.requests.post")
+    def test_proof_message_failure_is_logged_not_raised(self, post_mock):
+        post_mock.side_effect = Exception("network down")
+
+        with self.assertLogs("miner_app.views", level="ERROR"):
+            send_withdrawal_proof_notification(
+                "CryptoMiner", Decimal("4600"), Decimal("5"), 12
+            )
+
+    @patch("miner_app.views.requests.post")
+    def test_proof_message_is_skipped_without_group_setting(self, post_mock):
+        with override_settings(TELEGRAM_WITHDRAWAL_GROUP_ID=""):
+            send_withdrawal_proof_notification(
+                "CryptoMiner", Decimal("4600"), Decimal("5"), 12
+            )
+
+        post_mock.assert_not_called()
+
+    @patch("miner_app.views.threading.Thread", ImmediateThread)
+    @patch("miner_app.views.send_withdrawal_proof_notification")
+    @patch("miner_app.views.send_admin_notification")
+    def test_request_withdraw_sends_proof_with_tac_and_usdt(
+        self, notification_mock, proof_mock
+    ):
+        user = User.objects.create(
+            telegram_id=6101,
+            username="CryptoMiner",
+            wallet_address="EQTestWalletAddress",
+            is_wallet_verified=True,
+            usdt_balance=Decimal("5"),
+        )
+        for offset in range(3):
+            User.objects.create(
+                telegram_id=6102 + offset,
+                username=f"friend{offset}",
+                referred_by=user,
+            )
+
+        response = self.post_json(
+            "/api/request-withdraw/",
+            {"initData": build_init_data(6101), "amount": 5},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(proof_mock.call_count, 1)
+        (
+            username,
+            tac_amount,
+            usdt_amount,
+            request_id,
+            wallet_address,
+            created_at,
+        ) = proof_mock.call_args.args
+        self.assertEqual(username, "CryptoMiner")
+        self.assertEqual(tac_amount, Decimal("4600.00000000"))
+        self.assertEqual(usdt_amount, Decimal("5"))
+        self.assertEqual(request_id, WithdrawRequest.objects.get(user=user).pk)
+        self.assertEqual(wallet_address, "EQTestWalletAddress")
+        self.assertIsNotNone(created_at)
+
+    def create_pending_withdrawal(self, telegram_id, amount=Decimal("5")):
+        user = User.objects.create(
+            telegram_id=telegram_id,
+            username="CryptoMiner",
+            wallet_address="EQTestWalletAddress",
+            is_wallet_verified=True,
+        )
+        withdrawal = WithdrawRequest.objects.create(
+            user=user,
+            amount=amount,
+            wallet_address="EQTestWalletAddress",
+            status="pending",
+        )
+        return user, withdrawal
+
+    @patch("miner_app.views.requests.post")
+    def test_paid_proof_message_has_paid_status_and_no_buttons(self, post_mock):
+        post_mock.return_value = FakeTelegramResponse(True)
+
+        send_withdrawal_proof_notification(
+            "CryptoMiner",
+            Decimal("4600"),
+            Decimal("5"),
+            12,
+            wallet_address="EQTestWalletAddress",
+            status="completed",
+        )
+
+        kwargs = post_mock.call_args.kwargs
+        text = kwargs["json"]["text"]
+        self.assertIn("عملية سحب مدفوعة", text)
+        self.assertIn("مدفوعة", text)
+        self.assertNotIn("قيد المراجعة", text)
+        self.assertNotIn("القاهرة", text)
+        self.assertNotIn("reply_markup", kwargs["json"])
+
+    @patch("miner_app.signals.threading.Thread", ImmediateThread)
+    @patch("miner_app.views.send_withdrawal_proof_notification")
+    def test_marking_paid_posts_second_proof_message(self, proof_mock):
+        _, withdrawal = self.create_pending_withdrawal(6201)
+
+        withdrawal.status = "completed"
+        withdrawal.save(update_fields=["status"])
+
+        proof_mock.assert_called_once()
+        (
+            username,
+            tac_amount,
+            usdt_amount,
+            request_id,
+            wallet_address,
+            created_at,
+            status,
+        ) = proof_mock.call_args.args
+        self.assertEqual(username, "CryptoMiner")
+        self.assertEqual(tac_amount, Decimal("4600.00000000"))
+        self.assertEqual(usdt_amount, Decimal("5"))
+        self.assertEqual(request_id, withdrawal.pk)
+        self.assertEqual(wallet_address, "EQTestWalletAddress")
+        self.assertIsNotNone(created_at)
+        self.assertEqual(status, "completed")
+
+    @patch("miner_app.signals.threading.Thread", ImmediateThread)
+    @patch("miner_app.views.send_withdrawal_proof_notification")
+    def test_completed_withdrawal_is_not_announced_twice(self, proof_mock):
+        _, withdrawal = self.create_pending_withdrawal(6202)
+        withdrawal.status = "completed"
+        withdrawal.save(update_fields=["status"])
+
+        withdrawal.note = "مرجع الدفع: TX123"
+        withdrawal.save(update_fields=["note"])
+
+        proof_mock.assert_called_once()
+
+    @patch("miner_app.signals.threading.Thread", ImmediateThread)
+    @patch("miner_app.views.send_withdrawal_proof_notification")
+    def test_rejected_withdrawal_is_not_announced(self, proof_mock):
+        _, withdrawal = self.create_pending_withdrawal(6203)
+
+        withdrawal.status = "rejected"
+        withdrawal.save(update_fields=["status"])
+
+        proof_mock.assert_not_called()

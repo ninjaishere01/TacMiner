@@ -209,6 +209,9 @@ TELEGRAM_INITDATA_MAX_AGE_SECONDS = int(
     os.getenv('TELEGRAM_INITDATA_MAX_AGE_SECONDS', '86400')
 )
 WEBAPP_URL = os.getenv('WEBAPP_URL', 'https://tacminer.onrender.com')
+TELEGRAM_WITHDRAWAL_GROUP_ID = os.getenv(
+    'TELEGRAM_WITHDRAWAL_GROUP_ID', '@Tac_mining_withdrawal'
+)
 
 
 LOGGING = {
