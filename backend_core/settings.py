@@ -185,13 +185,9 @@ STORAGES = {
 
 
 # Email
-# https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
+# https://docs.djangoproject.com/en/5.2/topics/email/#topic-email-configuration
 
-MAILERS = {
-    'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
-    },
-}
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 
 
@@ -212,7 +208,7 @@ TELEGRAM_WEBHOOK_SECRET = os.getenv('TELEGRAM_WEBHOOK_SECRET')
 TELEGRAM_INITDATA_MAX_AGE_SECONDS = int(
     os.getenv('TELEGRAM_INITDATA_MAX_AGE_SECONDS', '86400')
 )
-WEBAPP_URL = os.getenv('WEBAPP_URL', 'https://tacminer.onrender.com')
+WEBAPP_URL = os.getenv('WEBAPP_URL', 'https://tacminer.site')
 TELEGRAM_WITHDRAWAL_GROUP_ID = os.getenv(
     'TELEGRAM_WITHDRAWAL_GROUP_ID', '@Tac_mining_withdrawal'
 )

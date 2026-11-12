@@ -10,6 +10,7 @@ from urllib.parse import urlencode
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import TestCase, override_settings
+from django.urls import reverse
 from django.utils import timezone
 
 from miner_app.models import (
@@ -400,7 +401,7 @@ class AdminWithdrawActionTests(TestCase):
     @patch("miner_app.views.send_withdrawal_proof_notification")
     @patch("miner_app.views.send_public_announcement")
     def test_admin_marks_withdrawal_paid(self, announce_mock, proof_mock):
-        decide_url = "/admin/miner_app/withdrawrequest/decide/"
+        decide_url = reverse("admin:miner_app_withdrawrequest_decide")
 
         page = self.client.get(
             decide_url, {"decision": "paid", "ids": str(self.withdrawal.pk)}

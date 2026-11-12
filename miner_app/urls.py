@@ -28,7 +28,6 @@ urlpatterns = [
     path('tonconnect-manifest.json', TemplateView.as_view(template_name='tonconnect-manifest.json', content_type='application/json')),
     path('api/verify-wallet/', views.verify_wallet, name='verify_wallet'),
     path('api/disconnect-wallet/', views.disconnect_wallet, name='disconnect_wallet'),
-    path('api/verify-wallet/', views.verify_wallet, name='api_verify_wallet'),
     path('api/exchange/', views.exchange_currency, name='api_exchange'),
 
     # AdsGram
