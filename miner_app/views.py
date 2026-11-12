@@ -988,13 +988,15 @@ def collect_referral_gold(request):
 
 
 def enqueue_task(task, *args, **kwargs):
-    """يبعت المهمة للطابور؛ فشل الطابور مايوقفش العملية الأساسية."""
+    """يبعت المهمة للطابور؛ لو الطابور مش متاح ينفذها مباشرة."""
     try:
         task.apply_async(args=args, **kwargs)
     except Exception:
         logger.exception(
-            "Failed to enqueue Celery task %s", getattr(task, "name", task)
+            "Failed to enqueue Celery task %s; running synchronously",
+            getattr(task, "name", task),
         )
+        task(*args)
 
 
 @api_view(['POST'])

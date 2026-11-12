@@ -275,6 +275,7 @@ class WithdrawRuleTests(TestCase):
     TELEGRAM_INITDATA_MAX_AGE_SECONDS=86400,
     SECURE_SSL_REDIRECT=False,
     ALLOWED_HOSTS=["testserver"],
+    ADSGRAM_BLOCK_ID="",
 )
 class SettlementAndSeedTests(TestCase):
     def post_json(self, path, payload, **extra):
