@@ -61,6 +61,15 @@ class Worker(models.Model):
     icon = models.CharField(max_length=50, help_text="FontAwesome icon class", verbose_name="الأيقونة")
     image = models.CharField(max_length=255, help_text="URL or static path", verbose_name="مسار الصورة")
     base_price = models.DecimalField(max_digits=18, decimal_places=2, verbose_name="السعر الأساسي")
+    # إنتاج العامل في الساعة عند المستوى 0، منفصل عن سعره عشان تقدر تعدّل
+    # اقتصاد اللعبة من غير ما تتأثر سرعة الربح. لو فاضي بيرجع لـ 1% من السعر.
+    base_rate = models.DecimalField(
+        max_digits=18,
+        decimal_places=4,
+        null=True,
+        blank=True,
+        verbose_name="الإنتاج/ساعة (المستوى 0)",
+    )
 
     def __str__(self):
         return self.name

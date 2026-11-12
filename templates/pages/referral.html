@@ -186,12 +186,11 @@
                 <i class="fa-solid fa-crown"></i>
               </div>
               <div class="milestone-info">
-                <span class="milestone-title">ادعُ 20 أصدقاء</span>
+                <span class="milestone-title"
+                  >ادعُ 20 صديقاً فعّلوا التعدين</span
+                >
                 <span class="milestone-reward">
-                  +200 TAC
-                  <span style="color: #00d2ff; font-weight: 900">
-                    + 2$ USDT
-                  </span>
+                  +200 TAC + شارة الشريك
                 </span>
               </div>
               <button
@@ -366,6 +365,7 @@
 
       // 3. نظام مكافآت الدعوة (الحالة جاية من الـ API / UserTask)
       let currentFriendsCount = 0;
+      let currentActiveFriendsCount = 0;
       let claimedMilestones = [];
 
       function checkMilestones() {
@@ -379,6 +379,9 @@
         milestones.forEach((ms) => {
           const card = document.getElementById(ms.id);
           const btn = card.querySelector(".btn-claim-milestone");
+          // شريك: 20 مدعو فعّلوا التعدين، مش مجرد 20 دعوة
+          const friendsProgress =
+            ms.count === 20 ? currentActiveFriendsCount : currentFriendsCount;
 
           if (claimedMilestones.includes(ms.count)) {
             card.classList.remove("claimable");
@@ -387,7 +390,7 @@
             btn.classList.add("claimed-btn");
             btn.classList.remove("disabled-btn");
             btn.disabled = true;
-          } else if (currentFriendsCount >= ms.count) {
+          } else if (friendsProgress >= ms.count) {
             card.classList.add("claimable");
             card.classList.remove("claimed");
             btn.classList.remove("disabled-btn", "claimed-btn");
@@ -405,7 +408,9 @@
 
       function claimMilestone(friendCount, rewardAmount) {
         if (claimedMilestones.includes(friendCount)) return;
-        if (currentFriendsCount < friendCount) return;
+        const friendsProgress =
+          friendCount === 20 ? currentActiveFriendsCount : currentFriendsCount;
+        if (friendsProgress < friendCount) return;
 
         fetch("/api/claim-task/", {
           method: "POST",
@@ -427,6 +432,10 @@
                 currentReferralBalance = data.referral_balance;
                 document.getElementById("referral-balance-display").innerText =
                   currentReferralBalance.toFixed(2);
+              }
+
+              if (typeof data.active_referrals_count === "number") {
+                currentActiveFriendsCount = data.active_referrals_count;
               }
 
               checkMilestones();
@@ -490,6 +499,10 @@
                 typeof data.user.referrals_count === "number"
                   ? data.user.referrals_count
                   : friends.length;
+              currentActiveFriendsCount =
+                typeof data.user.active_referrals_count === "number"
+                  ? data.user.active_referrals_count
+                  : friends.filter((ref) => ref.active).length;
               document.getElementById("friends-count").innerText =
                 currentFriendsCount;
 
@@ -512,7 +525,11 @@
                         </div>
                         <div class="friend-info">
                           <span class="friend-name">${escapeHtml(ref.username)}</span>
-                          <span class="friend-status text-success"><i class="fa-solid fa-circle-check"></i> نشط</span>
+                          ${
+                            ref.active
+                              ? '<span class="friend-status text-success"><i class="fa-solid fa-circle-check"></i> فعّل التعدين</span>'
+                              : '<span class="friend-status text-muted"><i class="fa-solid fa-hourglass-half"></i> لم يفعّل بعد</span>'
+                          }
                         </div>
                         <div class="friend-earnings">
                           <span class="earn-val">+ ${(ref.balance * 0.1).toFixed(0)}</span>

@@ -94,7 +94,7 @@
               class="badge bg-warning text-dark mt-1 fw-bold"
               style="font-size: 11px"
             >
-              <i class="fa-solid fa-dragon"></i> عامل Dragon (قيمته 250 TAC)
+              <i class="fa-solid fa-dragon"></i> عامل Dragon (قيمته 125 TAC)
             </span>
           </div>
 
@@ -196,7 +196,7 @@
           </div>
           <div class="task-info">
             <h6>Tac Mining Company</h6>
-            <span class="task-reward">+ 50 TAC</span>
+            <span class="task-reward">+ 25 TAC</span>
           </div>
           <div class="d-flex flex-column gap-1" id="channel-actions-1">
             <button
@@ -223,7 +223,7 @@
           </div>
           <div class="task-info">
             <h6>Tac Mining Community</h6>
-            <span class="task-reward">+ 50 TAC</span>
+            <span class="task-reward">+ 25 TAC</span>
           </div>
           <div class="d-flex flex-column gap-1" id="channel-actions-2">
             <button
@@ -250,7 +250,7 @@
           </div>
           <div class="task-info">
             <h6>Tac Mining Chat</h6>
-            <span class="task-reward">+ 50 TAC</span>
+            <span class="task-reward">+ 25 TAC</span>
           </div>
           <div class="d-flex flex-column gap-1" id="channel-actions-3">
             <button
@@ -277,7 +277,7 @@
           </div>
           <div class="task-info">
             <h6>Tac Mining Withdrawal</h6>
-            <span class="task-reward">+ 50 TAC</span>
+            <span class="task-reward">+ 25 TAC</span>
           </div>
           <div class="d-flex flex-column gap-1" id="channel-actions-4">
             <button
@@ -291,6 +291,60 @@
               type="button"
               class="btn btn-task-action"
               onclick="verifyChannelMembership(4, '{{ task_channel_4|escapejs }}')"
+            >
+              تحقق
+            </button>
+          </div>
+        </div>
+
+        <!-- مهمة القناة 5 -->
+        <div class="task-card">
+          <div class="task-icon-box">
+            <i class="fa-brands fa-telegram text-info"></i>
+          </div>
+          <div class="task-info">
+            <h6>Temo Tac 1</h6>
+            <span class="task-reward">+ 150 TAC</span>
+          </div>
+          <div class="d-flex flex-column gap-1" id="channel-actions-5">
+            <button
+              type="button"
+              class="btn btn-task-action"
+              onclick="window.open('{{ task_channel_5_url|escapejs }}', '_blank')"
+            >
+              اذهب
+            </button>
+            <button
+              type="button"
+              class="btn btn-task-action"
+              onclick="verifyChannelMembership(5, '{{ task_channel_5|escapejs }}')"
+            >
+              تحقق
+            </button>
+          </div>
+        </div>
+
+        <!-- مهمة القناة 6 -->
+        <div class="task-card">
+          <div class="task-icon-box">
+            <i class="fa-brands fa-telegram text-info"></i>
+          </div>
+          <div class="task-info">
+            <h6>Temo Tac 2</h6>
+            <span class="task-reward">+ 150 TAC</span>
+          </div>
+          <div class="d-flex flex-column gap-1" id="channel-actions-6">
+            <button
+              type="button"
+              class="btn btn-task-action"
+              onclick="window.open('{{ task_channel_6_url|escapejs }}', '_blank')"
+            >
+              اذهب
+            </button>
+            <button
+              type="button"
+              class="btn btn-task-action"
+              onclick="verifyChannelMembership(6, '{{ task_channel_6|escapejs }}')"
             >
               تحقق
             </button>
@@ -550,6 +604,19 @@
                 icon: "success",
                 timer: 1500,
                 showConfirmButton: false,
+              });
+            } else if (data.code === "wallet_required") {
+              Swal.fire({
+                title: "اربط محفظتك الأول",
+                text: data.error,
+                icon: "warning",
+                confirmButtonText: "اذهب للحساب",
+                showCancelButton: true,
+                cancelButtonText: "لاحقًا",
+              }).then((result) => {
+                if (result.isConfirmed) {
+                  window.location.href = "/profile/";
+                }
               });
             } else {
               if (data.activation_time_left > 0) {
@@ -846,7 +913,14 @@
               }
 
               const completedTasks = user.completed_tasks || [];
-              ["channel_1", "channel_2", "channel_3", "channel_4"].forEach(
+              [
+                "channel_1",
+                "channel_2",
+                "channel_3",
+                "channel_4",
+                "channel_5",
+                "channel_6",
+              ].forEach(
                 (taskName) => {
                   if (completedTasks.includes(taskName)) {
                     markChannelTaskFinished(taskName.split("_")[1]);

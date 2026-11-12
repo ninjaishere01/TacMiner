@@ -98,7 +98,7 @@
           <div class="withdraw-notes text-center mb-4">
             <p class="mb-1">
               <i class="fa-solid fa-circle-info text-info"></i> الحد الأدنى
-              للسحب: 5 USDT
+              للسحب: 3 USDT
             </p>
             <p class="mb-0">
               <i class="fa-solid fa-bolt text-warning"></i> السحب يصل من 1 إلى 24 ساعة كحد أقصى.</p>
@@ -233,8 +233,8 @@
         const btn = document.getElementById("withdraw-btn");
         const condition = document.getElementById("referral-condition");
 
-        // ✅ شرط السحب: محفظة + رصيد >= 5 + إحالات >= 3
-        if (currentUSDT >= 5 && userWalletAddress && referralsCount >= 3) {
+        // ✅ شرط السحب: محفظة + رصيد >= 3 + إحالات >= 3
+        if (currentUSDT >= 3 && userWalletAddress && referralsCount >= 3) {
           btn.disabled = false;
           btn.style.background = "";
           btn.style.boxShadow = "";
@@ -254,7 +254,7 @@
       }
 
       function executeWithdraw() {
-        if (currentUSDT >= 5) {
+        if (currentUSDT >= 3) {
           Swal.fire({
             title: "تأكيد طلب السحب",
             text: `سيتم خصم ${currentUSDT.toFixed(2)} USDT وتقديم طلب السحب. هل أنت متأكد؟`,

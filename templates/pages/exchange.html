@@ -74,7 +74,7 @@
                 type="number"
                 id="gold-input"
                 placeholder="0"
-                min="920"
+                min="1000"
                 step="100"
                 oninput="calculateExchange()"
               />
@@ -83,7 +83,7 @@
               </div>
             </div>
             <small class="text-muted mt-1 d-block" style="font-size: 11px"
-              >الحد الأدنى للتحويل: 920 TAC</small
+              >الحد الأدنى للتحويل: 1000 TAC</small
             >
           </div>
 
@@ -107,7 +107,7 @@
               </div>
             </div>
             <small class="text-muted mt-1 d-block" style="font-size: 11px"
-              >سعر الصرف: 920 TAC = 1 USDT</small
+              >سعر الصرف: 1000 TAC = 1 USDT</small
             >
           </div>
 
@@ -200,11 +200,11 @@
         const confirmBtn = document.getElementById("confirm-btn");
 
         let gold = parseInt(goldInput) || 0;
-        let usdt = gold / 920;
+        let usdt = gold / 1000;
         usdtOutput.innerText = usdt.toFixed(2);
 
         // بنستخدم currentBalance بدل data.balance
-        if (gold >= 920 && gold <= currentBalance) {
+        if (gold >= 1000 && gold <= currentBalance) {
           confirmBtn.disabled = false;
           confirmBtn.style.background = "";
         } else {
@@ -217,10 +217,10 @@
         const goldInput = document.getElementById("gold-input");
         let maxGold = Math.floor(currentBalance);
 
-        if (maxGold < 920) {
+        if (maxGold < 1000) {
           Swal.fire({
             title: "رصيدك غير كافي",
-            text: "تحتاج إلى 920 TAC على الأقل للتحويل.",
+            text: "تحتاج إلى 1000 TAC على الأقل للتحويل.",
             icon: "warning",
             confirmButtonText: "حسناً",
             customClass: {
@@ -241,7 +241,7 @@
         let gold = parseInt(goldInput);
 
         // بنستخدم currentBalance بدل data.balance
-        if (gold >= 920 && gold <= currentBalance) {
+        if (gold >= 1000 && gold <= currentBalance) {
           // بنبعت الطلب للباك إند
           fetch("/api/exchange/", {
             method: "POST",

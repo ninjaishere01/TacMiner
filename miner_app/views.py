@@ -25,7 +25,9 @@ from urllib.parse import parse_qsl
 
 logger = logging.getLogger(__name__)
 
-WITHDRAW_TAC_PER_USDT = Decimal("920")
+WITHDRAW_TAC_PER_USDT = Decimal("1000")
+MIN_WITHDRAW_USDT = Decimal("3")
+DAILY_CHECKIN_REWARD = Decimal("10")
 
 # حد أقصى لحجم initData عشان نمنع أي payload ضخم
 TELEGRAM_INIT_DATA_MAX_LENGTH = 8192
@@ -38,13 +40,31 @@ MILESTONE_REWARDS = {
     "milestone_3": (3, Decimal("30")),
     "milestone_5": (5, Decimal("50")),
     "milestone_10": (10, Decimal("100")),
+    "milestone_20": (20, Decimal("200")),
 }
 
-CHANNEL_TASK_NAMES = ("channel_1", "channel_2", "channel_3", "channel_4")
+# شريك: 20 مدعو، وكلهم لازم يكونوا فعّلوا التعدين مرة واحدة على الأقل
+PARTNER_MILESTONE = "milestone_20"
 
-# أسماء المهام المسموح بيها. milestone_20 لسه بتاخد نفس مكافأة المهام العادية
-# زي ما هي دلوقتي، ومش بنغير قيمتها.
-ALLOWED_TASK_NAMES = set(CHANNEL_TASK_NAMES) | set(MILESTONE_REWARDS) | {"milestone_20"}
+CHANNEL_TASK_NAMES = (
+    "channel_1",
+    "channel_2",
+    "channel_3",
+    "channel_4",
+    "channel_5",
+    "channel_6",
+)
+
+CHANNEL_TASK_REWARDS = {
+    "channel_1": Decimal("25"),
+    "channel_2": Decimal("25"),
+    "channel_3": Decimal("25"),
+    "channel_4": Decimal("25"),
+    "channel_5": Decimal("150"),
+    "channel_6": Decimal("150"),
+}
+
+ALLOWED_TASK_NAMES = set(CHANNEL_TASK_NAMES) | set(MILESTONE_REWARDS)
 
 
 def verify_telegram_data(init_data):
@@ -147,12 +167,20 @@ def get_claimed_milestones(user):
 
 
 #  لحساب ارباح اليوزر من العمال 
+def worker_hourly_rate(worker):
+    """إنتاج العامل/ساعة عند المستوى 0. لو base_rate متسجل بنستخدمه،
+    وإلا بنرجع للقاعدة القديمة (1% من السعر) للعمال اللي اتضافوا يدويًا."""
+    if worker.base_rate is not None:
+        return float(worker.base_rate)
+    return float(worker.base_price) * 0.01
+
+
 def calculate_user_production(user):
     user_workers = UserWorker.objects.filter(user=user).select_related('worker')
     
     total_per_hour = 0
     for uw in user_workers:
-        worker_production = float(uw.worker.base_price) * 0.01 * (1.1 ** uw.level)
+        worker_production = worker_hourly_rate(uw.worker) * (1.1 ** uw.level)
         total_per_hour += worker_production
         
     # التحقق من تفعيل البوست
@@ -371,10 +399,14 @@ def login_or_register(request):
     production = calculate_user_production(user)
     referred_users = list(user.referrals.all())
     referrals_list = []
+    active_referrals_count = 0
     for ref in referred_users:
+        is_active = ref.last_activation_at is not None
+        active_referrals_count += 1 if is_active else 0
         referrals_list.append({
             "username": ref.username or str(ref.telegram_id),
-            "balance": float(ref.balance)
+            "balance": float(ref.balance),
+            "active": is_active,
         })
     referrals_count = len(referrals_list)
 
@@ -399,6 +431,7 @@ def login_or_register(request):
             "time_left": time_left,
             "referrals": referrals_list,
             "referrals_count": referrals_count,
+            "active_referrals_count": active_referrals_count,
             "claimed_milestones": get_claimed_milestones(user),
             "production": production,
             "completed_tasks": [task.task_name for task in user.tasks.all()],
@@ -581,6 +614,8 @@ def claim_task_reward(request):
         "channel_2": settings.TELEGRAM_TASK_CHANNEL_2,
         "channel_3": settings.TELEGRAM_TASK_CHANNEL_3,
         "channel_4": settings.TELEGRAM_TASK_CHANNEL_4,
+        "channel_5": getattr(settings, "TELEGRAM_TASK_CHANNEL_5", None),
+        "channel_6": getattr(settings, "TELEGRAM_TASK_CHANNEL_6", None),
     }
     if task_name in channel_tasks and not telegram_user_in_channel(telegram_id, channel_tasks[task_name]):
         return Response({"error": "أنت لست عضوًا. انضم أولاً ثم اضغط تحقق"}, status=400)
@@ -595,12 +630,26 @@ def claim_task_reward(request):
             # مكافآت الدعوة بتتسجل في UserTask وبتضاف لرصيد الإحالة
             if task_name in MILESTONE_REWARDS:
                 required_friends, reward_amount = MILESTONE_REWARDS[task_name]
-                friends_count = user.referrals.count()
+                if task_name == PARTNER_MILESTONE:
+                    # شريك: لازم 20 صديق فعّلوا التعدين مرة واحدة على الأقل
+                    friends_count = user.referrals.filter(
+                        last_activation_at__isnull=False
+                    ).count()
+                    shortfall_message = (
+                        "لازم 20 صديق فعّلوا التعدين مرة واحدة على الأقل"
+                    )
+                else:
+                    friends_count = user.referrals.count()
+                    shortfall_message = "عدد الأصدقاء المدعوين غير كافٍ"
                 if friends_count < required_friends:
-                    return Response({"error": "عدد الأصدقاء المدعوين غير كافٍ"}, status=400)
+                    return Response({"error": shortfall_message}, status=400)
 
                 user.referral_balance += reward_amount
-                user.save(update_fields=["referral_balance"])
+                update_fields = ["referral_balance"]
+                if task_name == PARTNER_MILESTONE:
+                    user.is_partner = True
+                    update_fields.append("is_partner")
+                user.save(update_fields=update_fields)
                 UserTask.objects.create(user=user, task_name=task_name)
 
                 return Response({
@@ -609,11 +658,16 @@ def claim_task_reward(request):
                     "referral_balance": float(user.referral_balance),
                     "new_balance": float(user.balance),
                     "claimed_milestones": get_claimed_milestones(user),
-                    "referrals_count": friends_count,
+                    "referrals_count": user.referrals.count(),
+                    "active_referrals_count": friends_count,
+                    "is_partner": user.is_partner,
                 })
 
-            # مكافآت المهام العادية بتضاف للرصيد الأساسي
-            reward_amount = Decimal('50.00')
+            # مهام القنوات: المكافأة محددة من السيرفر لكل قناة
+            reward_amount = CHANNEL_TASK_REWARDS.get(task_name)
+            if reward_amount is None:
+                return Response({"error": "مهمة غير معروفة"}, status=400)
+
             user.balance += reward_amount
             user.save(update_fields=["balance"])
             UserTask.objects.create(user=user, task_name=task_name)
@@ -705,6 +759,13 @@ def watch_ad(request):
 
             # --- 1. إعلانات تفعيل التعدين (3 إعلانات = نافذة 24 ساعة) ---
             if ad_type == 'activation':
+                # ربط المحفظة شرط لبدء التعدين (يقلل الحسابات المتعددة)
+                if not (user.is_wallet_verified and user.wallet_address):
+                    return Response({
+                        "error": "لازم تربط محفظتك الأول من صفحة الحساب عشان تبدأ التعدين.",
+                        "code": "wallet_required",
+                    }, status=400)
+
                 expiry = get_activation_expiry(user)
                 if expiry and now < expiry:
                     time_left = int((expiry - now).total_seconds())
@@ -923,8 +984,10 @@ def exchange_currency(request):
 
     try:
         tac_amount = Decimal(str(tac_amount))
-        if tac_amount < 920:
-            return Response({"error": "الحد الأدنى 920 TAC"}, status=400)
+        if tac_amount < WITHDRAW_TAC_PER_USDT:
+            return Response(
+                {"error": f"الحد الأدنى {int(WITHDRAW_TAC_PER_USDT)} TAC"}, status=400
+            )
 
         with transaction.atomic():
             user = User.objects.select_for_update().get(telegram_id=telegram_id)
@@ -932,8 +995,8 @@ def exchange_currency(request):
             if user.balance < tac_amount:
                 return Response({"error": "رصيدك غير كافي"}, status=400)
 
-            # حساب الـ USDT (كل 920 TAC = 1 USDT)
-            usdt_added = tac_amount / Decimal('920.0')
+            # حساب الـ USDT (كل 1000 TAC = 1 USDT)
+            usdt_added = tac_amount / WITHDRAW_TAC_PER_USDT
 
             # خصم الـ TAC وإضافة الـ USDT
             user.balance -= tac_amount
@@ -1020,8 +1083,11 @@ def request_withdraw(request):
             if not wallet_address:
                 return Response({"error": "لا توجد محفظة محفوظة"}, status=400)
 
-            if withdraw_amount < 5:
-                return Response({"error": "الحد الأدنى للسحب 5 USDT"}, status=400)
+            if withdraw_amount < MIN_WITHDRAW_USDT:
+                return Response(
+                    {"error": f"الحد الأدنى للسحب {MIN_WITHDRAW_USDT} USDT"},
+                    status=400,
+                )
 
             if user.usdt_balance < withdraw_amount:
                 return Response({"error": "رصيدك غير كافي"}, status=400)
@@ -1353,7 +1419,7 @@ WELCOME_CAPTION = (
     "⛏ Mine TAC every day\n"
     "⚒ Upgrade your workers to earn more\n"
     "🎁 Complete tasks & claim daily rewards\n"
-    "💸 Withdraw safely at 4600 TAC ($5)\n\n"
+    "💸 Withdraw safely at 3000 TAC ($3)\n\n"
     "Start mining now 👇"
 )
 
@@ -1593,7 +1659,7 @@ def daily_check_in(request):
             user.daily_streak += 1
             user.last_daily_check = today
 
-            reward_message = "+1 TAC"
+            reward_message = f"+{DAILY_CHECKIN_REWARD} TAC"
 
             # مكافأة اليوم 30 مرة واحدة، والعداد يفضل 30
             if user.daily_streak >= 30 and not user.has_claimed_30_day_gift:
@@ -1602,11 +1668,12 @@ def daily_check_in(request):
                     uw, created = UserWorker.objects.get_or_create(user=user, worker=dragon_worker)
                     uw.level += 1
                     uw.save(update_fields=["level"])
-                    reward_message = "🎉 مبروك! حصلت على عامل Dragon + 1 TAC"
+                    reward_message = (
+                        f"🎉 مبروك! حصلت على عامل Dragon + {DAILY_CHECKIN_REWARD} TAC"
+                    )
                     user.has_claimed_30_day_gift = True
 
-            # نضيف الـ 1 TAC ونحفظ مرة واحدة
-            user.balance += Decimal('1.0')
+            user.balance += DAILY_CHECKIN_REWARD
             user.save(update_fields=[
                 "balance",
                 "daily_streak",
@@ -1649,6 +1716,8 @@ def tasks(request):
         settings.TELEGRAM_TASK_CHANNEL_2,
         settings.TELEGRAM_TASK_CHANNEL_3,
         settings.TELEGRAM_TASK_CHANNEL_4,
+        getattr(settings, "TELEGRAM_TASK_CHANNEL_5", None),
+        getattr(settings, "TELEGRAM_TASK_CHANNEL_6", None),
     )
     context = {}
     for index, channel in enumerate(channels, start=1):

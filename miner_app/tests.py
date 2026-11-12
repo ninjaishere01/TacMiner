@@ -136,17 +136,52 @@ class ApiSecurityTests(TestCase):
         self.assertEqual(user.balance, Decimal("0"))
         self.assertFalse(UserTask.objects.filter(user=user).exists())
 
-    def test_milestone_20_keeps_existing_reward(self):
+    def test_milestone_20_requires_active_referrals(self):
         user = User.objects.create(telegram_id=1202, username="milestone20")
+        for offset in range(19):
+            User.objects.create(
+                telegram_id=1300 + offset,
+                username=f"active{offset}",
+                referred_by=user,
+                last_activation_at=timezone.now(),
+            )
+        User.objects.create(
+            telegram_id=1350,
+            username="inactive",
+            referred_by=user,
+        )
 
         response = self.post_json(
             "/api/claim-task/",
             {"initData": build_init_data(1202), "task_name": "milestone_20"},
         )
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         user.refresh_from_db()
-        self.assertEqual(user.balance, Decimal("50.00"))
+        self.assertEqual(user.referral_balance, Decimal("0"))
+        self.assertFalse(user.is_partner)
+
+    def test_milestone_20_grants_partner_badge_and_200_tac(self):
+        user = User.objects.create(telegram_id=1203, username="partner")
+        for offset in range(20):
+            User.objects.create(
+                telegram_id=1400 + offset,
+                username=f"active{offset}",
+                referred_by=user,
+                last_activation_at=timezone.now(),
+            )
+
+        response = self.post_json(
+            "/api/claim-task/",
+            {"initData": build_init_data(1203), "task_name": "milestone_20"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["reward"], 200.0)
+        self.assertTrue(response.json()["is_partner"])
+        user.refresh_from_db()
+        self.assertEqual(user.referral_balance, Decimal("200"))
+        self.assertTrue(user.is_partner)
         self.assertTrue(
             UserTask.objects.filter(user=user, task_name="milestone_20").exists()
         )
@@ -212,7 +247,7 @@ class WithdrawRuleTests(TestCase):
             status,
             telegram_id,
         ) = proof_mock.call_args_list[0].args
-        self.assertEqual(tac_amount, Decimal("4600.00000000"))
+        self.assertEqual(tac_amount, Decimal("5000.00000000"))
         self.assertEqual(usdt_amount, Decimal("5"))
         self.assertEqual(wallet_address, "EQTestWalletAddress")
         self.assertEqual(status, "pending")
@@ -240,7 +275,7 @@ class WithdrawRuleTests(TestCase):
         withdrawal.refresh_from_db()
         self.assertEqual(withdrawal.status, "rejected")
         self.assertEqual(withdrawal.note, "عنوان غير صالح")
-        self.assertEqual(user.balance, Decimal("4600.00000000"))
+        self.assertEqual(user.balance, Decimal("5000.00000000"))
 
     @patch("miner_app.views.send_withdrawal_proof_notification")
     @patch("miner_app.views.send_public_announcement")
@@ -447,6 +482,8 @@ class ActivationCycleTests(TestCase):
         defaults = {
             "username": f"miner-{telegram_id}",
             "last_collected_at": timezone.now() - timedelta(hours=1),
+            "wallet_address": "EQTestWalletAddress",
+            "is_wallet_verified": True,
         }
         defaults.update(kwargs)
         return User.objects.create(telegram_id=telegram_id, **defaults)
@@ -493,6 +530,18 @@ class ActivationCycleTests(TestCase):
             "/api/collect/", {"initData": build_init_data(4101)}
         )
         self.assertEqual(collect.status_code, 200)
+
+    def test_activation_requires_linked_wallet(self):
+        self.create_miner(4150, wallet_address=None, is_wallet_verified=False)
+
+        response = self.watch_activation(4150)
+        body = response.json()
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(body["code"], "wallet_required")
+        user = User.objects.get(telegram_id=4150)
+        self.assertEqual(user.ads_watched_today, 0)
+        self.assertIsNone(user.last_activation_at)
 
     def test_mining_stops_after_24_hours(self):
         expired_at = timezone.now() - timedelta(hours=24, minutes=1)
@@ -634,6 +683,8 @@ class BoostCycleTests(TestCase):
         defaults = {
             "username": f"boost-{telegram_id}",
             "last_collected_at": timezone.now() - timedelta(hours=1),
+            "wallet_address": "EQTestWalletAddress",
+            "is_wallet_verified": True,
         }
         defaults.update(kwargs)
         return User.objects.create(telegram_id=telegram_id, **defaults)
@@ -766,7 +817,7 @@ class TelegramStartWelcomeTests(TestCase):
         "⛏ Mine TAC every day\n"
         "⚒ Upgrade your workers to earn more\n"
         "🎁 Complete tasks & claim daily rewards\n"
-        "💸 Withdraw safely at 4600 TAC ($5)\n\n"
+        "💸 Withdraw safely at 3000 TAC ($3)\n\n"
         "Start mining now 👇"
     )
 
@@ -902,7 +953,7 @@ class WithdrawalProofNotificationTests(TestCase):
 
         send_withdrawal_proof_notification(
             "CryptoMiner",
-            Decimal("4600.00000000"),
+            Decimal("5000.00000000"),
             Decimal("5"),
             12,
             wallet_address="EQTestWalletAddress",
@@ -917,7 +968,7 @@ class WithdrawalProofNotificationTests(TestCase):
         self.assertIn("Cry***", text)
         self.assertNotIn("CryptoMiner", text)
         self.assertIn("🪪 ID: 900900", text)
-        self.assertIn("4,600 TAC", text)
+        self.assertIn("5,000 TAC", text)
         self.assertIn("$5.00", text)
         self.assertIn("#12", text)
         self.assertIn("EQTestWa...ress", text)
@@ -932,14 +983,14 @@ class WithdrawalProofNotificationTests(TestCase):
 
         with self.assertLogs("miner_app.views", level="ERROR"):
             send_withdrawal_proof_notification(
-                "CryptoMiner", Decimal("4600"), Decimal("5"), 12
+                "CryptoMiner", Decimal("5000"), Decimal("5"), 12
             )
 
     @patch("miner_app.views.requests.post")
     def test_proof_message_is_skipped_without_group_setting(self, post_mock):
         with override_settings(TELEGRAM_WITHDRAWAL_GROUP_ID=""):
             send_withdrawal_proof_notification(
-                "CryptoMiner", Decimal("4600"), Decimal("5"), 12
+                "CryptoMiner", Decimal("5000"), Decimal("5"), 12
             )
 
         post_mock.assert_not_called()
@@ -980,7 +1031,7 @@ class WithdrawalProofNotificationTests(TestCase):
             telegram_id,
         ) = proof_mock.call_args.args
         self.assertEqual(username, "CryptoMiner")
-        self.assertEqual(tac_amount, Decimal("4600.00000000"))
+        self.assertEqual(tac_amount, Decimal("5000.00000000"))
         self.assertEqual(usdt_amount, Decimal("5"))
         self.assertEqual(request_id, WithdrawRequest.objects.get(user=user).pk)
         self.assertEqual(wallet_address, "EQTestWalletAddress")
@@ -1008,7 +1059,7 @@ class WithdrawalProofNotificationTests(TestCase):
 
         send_withdrawal_proof_notification(
             "CryptoMiner",
-            Decimal("4600"),
+            Decimal("5000"),
             Decimal("5"),
             12,
             wallet_address="EQTestWalletAddress",
@@ -1041,7 +1092,7 @@ class WithdrawalProofNotificationTests(TestCase):
             telegram_id,
         ) = proof_mock.call_args.args
         self.assertEqual(username, "CryptoMiner")
-        self.assertEqual(tac_amount, Decimal("4600.00000000"))
+        self.assertEqual(tac_amount, Decimal("5000.00000000"))
         self.assertEqual(usdt_amount, Decimal("5"))
         self.assertEqual(request_id, withdrawal.pk)
         self.assertEqual(wallet_address, "EQTestWalletAddress")
