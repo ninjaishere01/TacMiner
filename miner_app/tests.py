@@ -8,10 +8,12 @@ from unittest.mock import patch
 from urllib.parse import urlencode
 
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from miner_app.models import (
+    AdSession,
     PendingReferral,
     User,
     UserTask,
@@ -50,16 +52,11 @@ def build_init_data(telegram_id, auth_date=None, token=TEST_BOT_TOKEN):
     return urlencode(fields)
 
 
-class ImmediateThread:
-    """بديل للـ Thread في الاختبارات عشان يتنفذ فوراً."""
+from backend_core.celery import app as celery_app
 
-    def __init__(self, target=None, args=(), daemon=None, **kwargs):
-        self._target = target
-        self._args = args
-
-    def start(self):
-        if self._target:
-            self._target(*self._args)
+# نفّذ مهام Celery فورًا داخل نفس العملية أثناء الاختبارات (بدون Redis worker).
+celery_app.conf.task_always_eager = True
+celery_app.conf.task_eager_propagates = True
 
 
 @override_settings(
@@ -186,7 +183,6 @@ class WithdrawRuleTests(TestCase):
             )
         return user
 
-    @patch("miner_app.views.threading.Thread", ImmediateThread)
     @patch("miner_app.views.send_withdrawal_proof_notification")
     @patch("miner_app.views.send_admin_notification")
     def test_withdrawals_are_allowed_multiple_times_per_day(
@@ -245,9 +241,7 @@ class WithdrawRuleTests(TestCase):
         self.assertEqual(withdrawal.note, "عنوان غير صالح")
         self.assertEqual(user.balance, Decimal("4600.00000000"))
 
-    @patch("miner_app.signals.threading.Thread", ImmediateThread)
     @patch("miner_app.views.send_withdrawal_proof_notification")
-    @patch("miner_app.views.threading.Thread", ImmediateThread)
     @patch("miner_app.views.send_public_announcement")
     def test_complete_announces_only_after_paid_and_once(
         self, announce_mock, proof_mock
@@ -402,9 +396,9 @@ class AdminWithdrawActionTests(TestCase):
             status="pending",
         )
 
-    @patch("miner_app.views.threading.Thread", ImmediateThread)
+    @patch("miner_app.views.send_withdrawal_proof_notification")
     @patch("miner_app.views.send_public_announcement")
-    def test_admin_marks_withdrawal_paid(self, announce_mock):
+    def test_admin_marks_withdrawal_paid(self, announce_mock, proof_mock):
         decide_url = "/admin/miner_app/withdrawrequest/decide/"
 
         page = self.client.get(
@@ -427,6 +421,8 @@ class AdminWithdrawActionTests(TestCase):
         self.assertEqual(self.withdrawal.status, "completed")
         self.assertIn("TX-ADMIN-1", self.withdrawal.note)
         announce_mock.assert_called_once()
+        proof_mock.assert_called_once()
+        self.assertEqual(proof_mock.call_args.args[5], "completed")
 
 
 @override_settings(
@@ -791,7 +787,6 @@ class TelegramStartWelcomeTests(TestCase):
             },
         }
 
-    @patch("miner_app.views.threading.Thread", ImmediateThread)
     @patch("miner_app.views.requests.post")
     def test_start_sends_photo_with_caption_and_webapp_button(self, post_mock):
         post_mock.return_value = FakeTelegramResponse(True)
@@ -812,7 +807,6 @@ class TelegramStartWelcomeTests(TestCase):
         self.assertEqual(button["text"], "⛏ Start Mining")
         self.assertEqual(button["web_app"]["url"], TEST_WEBAPP_URL)
 
-    @patch("miner_app.views.threading.Thread", ImmediateThread)
     @patch("miner_app.views.requests.post")
     def test_start_falls_back_to_text_when_photo_fails(self, post_mock):
         post_mock.side_effect = [
@@ -834,7 +828,6 @@ class TelegramStartWelcomeTests(TestCase):
         self.assertEqual(button["text"], "⛏ Start Mining")
         self.assertEqual(button["web_app"]["url"], TEST_WEBAPP_URL)
 
-    @patch("miner_app.views.threading.Thread", ImmediateThread)
     @patch("miner_app.views.requests.post")
     @patch("miner_app.views.os.path.isfile", return_value=False)
     def test_start_falls_back_to_text_when_photo_file_is_missing(
@@ -851,7 +844,6 @@ class TelegramStartWelcomeTests(TestCase):
             post_mock.call_args.kwargs["json"]["text"], self.expected_caption
         )
 
-    @patch("miner_app.views.threading.Thread", ImmediateThread)
     @patch("miner_app.views.requests.post")
     def test_start_with_referral_keeps_pending_referral_and_sends_welcome(
         self, post_mock
@@ -869,7 +861,6 @@ class TelegramStartWelcomeTests(TestCase):
         self.assertEqual(post_mock.call_count, 1)
         self.assertTrue(post_mock.call_args.args[0].endswith("/sendPhoto"))
 
-    @patch("miner_app.views.threading.Thread", ImmediateThread)
     @patch("miner_app.views.requests.post")
     def test_other_messages_are_ignored(self, post_mock):
         response = self.post_update(self.start_update(text="hello"))
@@ -877,7 +868,6 @@ class TelegramStartWelcomeTests(TestCase):
         self.assertEqual(response.status_code, 200)
         post_mock.assert_not_called()
 
-    @patch("miner_app.views.threading.Thread", ImmediateThread)
     @patch("miner_app.views.requests.post")
     def test_group_start_is_ignored(self, post_mock):
         response = self.post_update(
@@ -952,7 +942,6 @@ class WithdrawalProofNotificationTests(TestCase):
 
         post_mock.assert_not_called()
 
-    @patch("miner_app.views.threading.Thread", ImmediateThread)
     @patch("miner_app.views.send_withdrawal_proof_notification")
     @patch("miner_app.views.send_admin_notification")
     def test_request_withdraw_sends_proof_with_tac_and_usdt(
@@ -1032,7 +1021,6 @@ class WithdrawalProofNotificationTests(TestCase):
         self.assertNotIn("القاهرة", text)
         self.assertNotIn("reply_markup", kwargs["json"])
 
-    @patch("miner_app.signals.threading.Thread", ImmediateThread)
     @patch("miner_app.views.send_withdrawal_proof_notification")
     def test_marking_paid_posts_second_proof_message(self, proof_mock):
         _, withdrawal = self.create_pending_withdrawal(6201)
@@ -1058,7 +1046,6 @@ class WithdrawalProofNotificationTests(TestCase):
         self.assertEqual(status, "completed")
         self.assertEqual(telegram_id, 6201)
 
-    @patch("miner_app.signals.threading.Thread", ImmediateThread)
     @patch("miner_app.views.send_withdrawal_proof_notification")
     def test_completed_withdrawal_is_not_announced_twice(self, proof_mock):
         _, withdrawal = self.create_pending_withdrawal(6202)
@@ -1070,7 +1057,6 @@ class WithdrawalProofNotificationTests(TestCase):
 
         proof_mock.assert_called_once()
 
-    @patch("miner_app.signals.threading.Thread", ImmediateThread)
     @patch("miner_app.views.send_withdrawal_proof_notification")
     def test_rejected_withdrawal_is_not_announced(self, proof_mock):
         _, withdrawal = self.create_pending_withdrawal(6203)
@@ -1079,3 +1065,188 @@ class WithdrawalProofNotificationTests(TestCase):
         withdrawal.save(update_fields=["status"])
 
         proof_mock.assert_not_called()
+
+
+class HealthCheckTests(TestCase):
+    def test_healthz_reports_ok(self):
+        response = self.client.get("/healthz/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"status": "ok"})
+
+
+@override_settings(
+    TELEGRAM_BOT_TOKEN=TEST_BOT_TOKEN,
+    TELEGRAM_WEBHOOK_SECRET=TEST_WEBHOOK_SECRET,
+    WEBAPP_URL="https://tacminer.example.com",
+)
+class SetTelegramWebhookCommandTests(TestCase):
+    @patch("miner_app.management.commands.set_telegram_webhook.requests.post")
+    def test_registers_webhook_for_configured_domain(self, post_mock):
+        post_mock.return_value.json.return_value = {"ok": True}
+
+        call_command("set_telegram_webhook")
+
+        url = post_mock.call_args.args[0]
+        payload = post_mock.call_args.kwargs["json"]
+        self.assertEqual(url, f"https://api.telegram.org/bot{TEST_BOT_TOKEN}/setWebhook")
+        self.assertEqual(
+            payload["url"], "https://tacminer.example.com/api/telegram-webhook/"
+        )
+        self.assertEqual(payload["secret_token"], TEST_WEBHOOK_SECRET)
+        self.assertEqual(
+            payload["allowed_updates"],
+            ["message", "edited_message"],
+        )
+
+    @override_settings(TELEGRAM_BOT_TOKEN="")
+    def test_requires_bot_token(self):
+        with self.assertRaises(CommandError):
+            call_command("set_telegram_webhook")
+
+
+@override_settings(
+    TELEGRAM_BOT_TOKEN=TEST_BOT_TOKEN,
+    ADSGRAM_BLOCK_ID="block-test",
+    ADSGRAM_REWARD_SECRET="ads-secret",
+    ADSGRAM_SESSION_TTL_SECONDS=600,
+)
+class AdsgramWorkerGateTests(TestCase):
+    def setUp(self):
+        self.worker = Worker.objects.create(
+            name="Ad Worker",
+            icon="fa-hammer",
+            image="/static/images/1.png",
+            base_price=Decimal("100"),
+        )
+        self.user = User.objects.create(
+            telegram_id=8801,
+            username="ad-user",
+            balance=Decimal("1000"),
+        )
+        self.init_data = build_init_data(8801)
+
+    def post_json(self, path, payload):
+        return self.client.post(
+            path,
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+
+    def start_session(self):
+        response = self.post_json(
+            "/api/ads/start/",
+            {"initData": self.init_data, "worker_id": self.worker.id},
+        )
+        self.assertEqual(response.status_code, 200)
+        return response
+
+    def confirm_session(self, telegram_id=8801, secret="ads-secret"):
+        return self.client.get(
+            "/api/adsgram/postback/",
+            {"user_id": str(telegram_id), "secret": secret},
+        )
+
+    def upgrade(self, token=None):
+        return self.post_json(
+            "/api/upgrade/",
+            {
+                "initData": self.init_data,
+                "worker_id": self.worker.id,
+                "ad_session": token,
+            },
+        )
+
+    def test_start_creates_pending_session(self):
+        response = self.start_session()
+
+        data = response.json()
+        self.assertTrue(data["enabled"])
+        self.assertEqual(data["block_id"], "block-test")
+        session = AdSession.objects.get(token=data["session"])
+        self.assertEqual(session.user, self.user)
+        self.assertEqual(session.context_id, self.worker.id)
+        self.assertEqual(session.status, AdSession.STATUS_PENDING)
+
+    def test_upgrade_requires_ad_session(self):
+        response = self.upgrade()
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["error"], "ad_required")
+        self.assertFalse(UserWorker.objects.filter(user=self.user).exists())
+
+    def test_upgrade_waits_for_postback_confirmation(self):
+        token = self.start_session().json()["session"]
+
+        response = self.upgrade(token)
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.json()["error"], "ad_pending")
+
+    def test_postback_confirms_and_upgrade_consumes_session(self):
+        token = self.start_session().json()["session"]
+
+        postback = self.confirm_session()
+        self.assertEqual(postback.status_code, 200)
+        self.assertEqual(postback.json(), {"ok": True})
+
+        response = self.upgrade(token)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["message"], "Upgraded!")
+        self.assertEqual(response.json()["new_level"], 1)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.balance, Decimal("900.00000000"))
+        session = AdSession.objects.get(token=token)
+        self.assertEqual(session.status, AdSession.STATUS_CONSUMED)
+        self.assertIsNotNone(session.consumed_at)
+
+    def test_postback_rejects_invalid_secret(self):
+        token = self.start_session().json()["session"]
+
+        response = self.confirm_session(secret="wrong-secret")
+
+        self.assertEqual(response.status_code, 403)
+        session = AdSession.objects.get(token=token)
+        self.assertEqual(session.status, AdSession.STATUS_PENDING)
+
+    def test_session_is_bound_to_the_same_worker(self):
+        token = self.start_session().json()["session"]
+        self.confirm_session()
+        other_worker = Worker.objects.create(
+            name="Other Worker",
+            icon="fa-cog",
+            image="/static/images/2.png",
+            base_price=Decimal("200"),
+        )
+
+        response = self.post_json(
+            "/api/upgrade/",
+            {
+                "initData": self.init_data,
+                "worker_id": other_worker.id,
+                "ad_session": token,
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["error"], "ad_required")
+
+    def test_consumed_session_cannot_be_reused(self):
+        token = self.start_session().json()["session"]
+        self.confirm_session()
+        self.assertEqual(self.upgrade(token).status_code, 200)
+
+        response = self.upgrade(token)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["error"], "ad_required")
+
+    @override_settings(ADSGRAM_BLOCK_ID="")
+    def test_gate_is_disabled_without_block_id(self):
+        response = self.upgrade()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["message"], "Upgraded!")
+        self.assertFalse(AdSession.objects.exists())
+

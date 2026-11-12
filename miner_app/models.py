@@ -109,3 +109,39 @@ class WithdrawRequest(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.amount} USDT - {self.status}"
 
+
+class AdSession(models.Model):
+    """جلسة إعلان واحدة: بتتفتح قبل العرض، وAdsGram بتأكدها عبر postback."""
+
+    PURPOSE_WORKER = 'worker'
+    PURPOSE_CHOICES = (
+        (PURPOSE_WORKER, 'شراء/ترقية عامل'),
+    )
+
+    STATUS_PENDING = 'pending'
+    STATUS_CONFIRMED = 'confirmed'
+    STATUS_CONSUMED = 'consumed'
+    STATUS_CHOICES = (
+        (STATUS_PENDING, 'بانتظار تأكيد الإعلان'),
+        (STATUS_CONFIRMED, 'تم تأكيد الإعلان'),
+        (STATUS_CONSUMED, 'مستخدم في عملية'),
+    )
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="ad_sessions", verbose_name="المستخدم")
+    purpose = models.CharField(max_length=32, choices=PURPOSE_CHOICES, default=PURPOSE_WORKER, verbose_name="الغرض")
+    context_id = models.IntegerField(null=True, blank=True, verbose_name="معرّف العنصر")
+    token = models.CharField(max_length=64, unique=True, verbose_name="توكن الجلسة")
+    status = models.CharField(max_length=16, choices=STATUS_CHOICES, default=STATUS_PENDING, verbose_name="الحالة")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="وقت الإنشاء")
+    expires_at = models.DateTimeField(verbose_name="وقت الانتهاء")
+    confirmed_at = models.DateTimeField(null=True, blank=True, verbose_name="وقت تأكيد الإعلان")
+    consumed_at = models.DateTimeField(null=True, blank=True, verbose_name="وقت الاستخدام")
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['user', 'status']),
+        ]
+
+    def __str__(self):
+        return f"{self.user_id} - {self.purpose} - {self.status}"
+

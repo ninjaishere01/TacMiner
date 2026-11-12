@@ -1,6 +1,7 @@
 Django>=5.0,<6.0
 djangorestframework
 django-cors-headers
+celery[redis]>=5.4,<6
 psycopg2-binary
 gunicorn
 whitenoise

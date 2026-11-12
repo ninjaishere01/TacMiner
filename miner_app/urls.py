@@ -6,6 +6,7 @@ from .import views
 
 
 urlpatterns = [
+    path('healthz/', views.healthz, name='healthz'),
     path('', views.index , name= 'index'),
     path('upgrade/', views.upgrade , name= 'upgrade'),
     path('tasks/', views.tasks, name='tasks'),
@@ -31,6 +32,8 @@ urlpatterns = [
     path('api/exchange/', views.exchange_currency, name='api_exchange'),
 
     # AdsGram
+    path('api/ads/start/', views.start_ad_session, name='ads_start'),
+    path('api/adsgram/postback/', views.adsgram_postback, name='adsgram_postback'),
     path('api/claim-task/', views.claim_task_reward, name='api_claim_task'),
     path('api/check-membership/', views.check_channel_membership, name='check_membership'),
     path('api/watch-ad/', views.watch_ad, name='api_watch_ad'),

@@ -1,16 +1,19 @@
 from django.shortcuts import render
-from django.db import transaction
+from django.db import connection, transaction
+from django.http import JsonResponse
+from django.views.decorators.http import require_GET
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from .models import User, Worker, UserWorker, UserTask, WithdrawRequest, PendingReferral 
+from .models import User, Worker, UserWorker, UserTask, WithdrawRequest, PendingReferral, AdSession 
 from rest_framework.permissions import AllowAny
 from decimal import Decimal
 from django.utils import timezone
 from datetime import timedelta
 import requests
 import random
+import secrets
 from django.conf import settings
-import threading
+from miner_app import tasks as task_queue
 import time
 import hmac
 import hashlib
@@ -462,10 +465,41 @@ def upgrade_worker(request):
     if not worker_id:
         return Response({"error": "Missing data"}, status=400)
 
+    ad_session_token = request.data.get('ad_session')
+
     try:
         with transaction.atomic():
             user = User.objects.select_for_update().get(telegram_id=telegram_id)
             worker = Worker.objects.get(id=worker_id)
+
+            ad_session = None
+            if _adsgram_enabled():
+                now = timezone.now()
+                ad_session = (
+                    AdSession.objects.select_for_update()
+                    .filter(
+                        user=user,
+                        token=str(ad_session_token or ''),
+                        purpose=AdSession.PURPOSE_WORKER,
+                        context_id=worker.id,
+                    )
+                    .first()
+                )
+                if ad_session is None or ad_session.expires_at <= now:
+                    return Response({
+                        "error": "ad_required",
+                        "message": "لازم تشاهد الإعلان الأول قبل العملية.",
+                    }, status=400)
+                if ad_session.status == AdSession.STATUS_PENDING:
+                    return Response({
+                        "error": "ad_pending",
+                        "message": "جاري تأكيد الإعلان، استنى لحظة.",
+                    }, status=409)
+                if ad_session.status != AdSession.STATUS_CONFIRMED:
+                    return Response({
+                        "error": "ad_required",
+                        "message": "الإعلان مستخدم بالفعل. شاهده من جديد.",
+                    }, status=400)
 
             user_worker, created = UserWorker.objects.select_for_update().get_or_create(
                 user=user, worker=worker
@@ -485,6 +519,11 @@ def upgrade_worker(request):
             user_worker.level += 1
             user.save(update_fields=["balance"])
             user_worker.save(update_fields=["level"])
+
+            if ad_session is not None:
+                ad_session.status = AdSession.STATUS_CONSUMED
+                ad_session.consumed_at = timezone.now()
+                ad_session.save(update_fields=["status", "consumed_at"])
 
             # احسب الإنتاج الجديد (بعد الترقية)
             production = calculate_user_production(user)
@@ -765,6 +804,110 @@ def watch_ad(request):
 
 
 
+def _adsgram_enabled():
+    return bool(settings.ADSGRAM_BLOCK_ID)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def start_ad_session(request):
+    """بتتفتح قبل عرض إعلان AdsGram وترجّع توكن الجلسة للواجهة."""
+    telegram_id = verify_telegram_data(request.data.get('initData'))
+    if not telegram_id:
+        return Response({"error": "Unauthorized"}, status=401)
+
+    if not _adsgram_enabled():
+        return Response({"enabled": False})
+
+    worker_id = request.data.get('worker_id')
+    try:
+        worker_id = int(worker_id)
+    except (TypeError, ValueError):
+        return Response({"error": "Missing data"}, status=400)
+
+    if not Worker.objects.filter(id=worker_id).exists():
+        return Response({"error": "Worker not found"}, status=404)
+
+    try:
+        user = User.objects.get(telegram_id=telegram_id)
+    except User.DoesNotExist:
+        return Response({"error": "User not found"}, status=404)
+
+    session = AdSession.objects.create(
+        user=user,
+        purpose=AdSession.PURPOSE_WORKER,
+        context_id=worker_id,
+        token=secrets.token_urlsafe(24),
+        expires_at=timezone.now()
+        + timedelta(seconds=settings.ADSGRAM_SESSION_TTL_SECONDS),
+    )
+
+    return Response({
+        "enabled": True,
+        "session": session.token,
+        "block_id": settings.ADSGRAM_BLOCK_ID,
+    })
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def adsgram_postback(request):
+    """AdsGram بتنادي هنا بعد ما المستخدم يخلص الإعلان، وبتأكد الجلسة المفتوحة."""
+    configured_secret = settings.ADSGRAM_REWARD_SECRET
+    received_secret = str(request.query_params.get('secret') or '')
+    if (
+        not configured_secret
+        or not hmac.compare_digest(received_secret, configured_secret)
+    ):
+        logger.warning("AdsGram postback rejected: invalid secret")
+        return Response({"ok": False}, status=403)
+
+    raw_user_id = (
+        request.query_params.get('user_id')
+        or request.query_params.get('userId')
+    )
+    try:
+        telegram_id = int(raw_user_id)
+    except (TypeError, ValueError):
+        logger.warning("AdsGram postback rejected: invalid userId=%r", raw_user_id)
+        return Response({"ok": False}, status=400)
+
+    now = timezone.now()
+    with transaction.atomic():
+        try:
+            user = User.objects.get(telegram_id=telegram_id)
+        except User.DoesNotExist:
+            # مستخدم غير معروف: نرجّع 200 عشان AdsGram ما تعيدش المحاولة.
+            logger.warning("AdsGram postback for unknown telegram_id=%s", telegram_id)
+            return Response({"ok": True})
+
+        session = (
+            AdSession.objects.select_for_update()
+            .filter(
+                user=user,
+                status=AdSession.STATUS_PENDING,
+                expires_at__gt=now,
+            )
+            .order_by('-created_at')
+            .first()
+        )
+        if session is None:
+            logger.warning(
+                "AdsGram postback without open session for telegram_id=%s",
+                telegram_id,
+            )
+            return Response({"ok": True})
+
+        session.status = AdSession.STATUS_CONFIRMED
+        session.confirmed_at = now
+        session.save(update_fields=["status", "confirmed_at"])
+
+    logger.info(
+        "AdsGram confirmed ad session=%s user=%s", session.pk, telegram_id
+    )
+    return Response({"ok": True})
+
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def exchange_currency(request):
@@ -844,6 +987,16 @@ def collect_referral_gold(request):
 
 
 
+def enqueue_task(task, *args, **kwargs):
+    """يبعت المهمة للطابور؛ فشل الطابور مايوقفش العملية الأساسية."""
+    try:
+        task.apply_async(args=args, **kwargs)
+    except Exception:
+        logger.exception(
+            "Failed to enqueue Celery task %s", getattr(task, "name", task)
+        )
+
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def request_withdraw(request):
@@ -888,27 +1041,22 @@ def request_withdraw(request):
                 Decimal("0.00000001")
             )
 
-        thread_admin = threading.Thread(
-            target=send_admin_notification,
-            args=(username, float(withdraw_amount), wallet_address),
-            daemon=True,
+        enqueue_task(
+            task_queue.send_admin_alert,
+            username,
+            float(withdraw_amount),
+            wallet_address,
         )
-        thread_admin.start()
-
-        thread_proof = threading.Thread(
-            target=send_withdrawal_proof_notification,
-            args=(
-                username,
-                tac_amount,
-                withdraw_amount,
-                withdraw_request.pk,
-                wallet_address,
-                "pending",
-                telegram_id,
-            ),
-            daemon=True,
+        enqueue_task(
+            task_queue.send_withdrawal_proof,
+            username,
+            tac_amount,
+            withdraw_amount,
+            withdraw_request.pk,
+            wallet_address,
+            "pending",
+            telegram_id,
         )
-        thread_proof.start()
 
         return Response({
             "message": "Withdraw Request Submitted!",
@@ -982,12 +1130,13 @@ def complete_withdraw_request(withdraw_request, payment_reference=""):
         amount = float(request_row.amount)
         wallet_address = request_row.wallet_address
 
-    thread = threading.Thread(
-        target=send_public_announcement,
-        args=(username, amount, wallet_address),
-        daemon=True,
+    enqueue_task(
+        task_queue.send_public_announcement,
+        username,
+        amount,
+        wallet_address,
+        countdown=random.randint(180, 600),
     )
-    thread.start()
     return True
 
 
@@ -1169,10 +1318,6 @@ def send_withdrawal_proof_notification(
 
 # 2. دالة إرسال إعلان لقناة الجمهور (بتتنادى بعد ما الأدمن يعلّم الطلب كمدفوع)
 def send_public_announcement(username, amount, wallet_address):
-    # تأخير عشوائي (3 لـ 10 دقايق)
-    delay = random.randint(180, 600)
-    time.sleep(delay)
-
     message = f"""
 🎉 **تم صرف أرباح جديدة!** 🎉
 
@@ -1336,15 +1481,22 @@ def telegram_webhook(request):
             ):
                 chat_id = chat.get("id")
                 if chat_id not in (None, ""):
-                    threading.Thread(
-                        target=send_start_welcome,
-                        args=(chat_id,),
-                        daemon=True,
-                    ).start()
+                    enqueue_task(task_queue.send_welcome, chat_id)
     except Exception:
         logger.exception("telegram_webhook failed to queue /start welcome")
 
     return Response({"ok": True}, status=200)
+
+
+@require_GET
+def healthz(request):
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+    except Exception:
+        logger.exception("healthz database check failed")
+        return JsonResponse({"status": "error"}, status=503)
+    return JsonResponse({"status": "ok"})
 
 
 def index(request):

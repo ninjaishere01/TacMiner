@@ -118,6 +118,8 @@ DATABASES = {
         'PASSWORD': os.getenv('DB_PASSWORD', ''),
         'HOST': os.getenv('DB_HOST', 'localhost'),
         'PORT': os.getenv('DB_PORT', '5432'),
+        'CONN_MAX_AGE': int(os.getenv('DB_CONN_MAX_AGE', '60')),
+        'CONN_HEALTH_CHECKS': True,
     }
 }
 
@@ -155,6 +157,8 @@ TIME_ZONE = 'Africa/Cairo'
 USE_I18N = True
 
 USE_TZ = True
+
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 
 # Static files (CSS, JavaScript, Images)
@@ -212,6 +216,27 @@ WEBAPP_URL = os.getenv('WEBAPP_URL', 'https://tacminer.onrender.com')
 TELEGRAM_WITHDRAWAL_GROUP_ID = os.getenv(
     'TELEGRAM_WITHDRAWAL_GROUP_ID', '@Tac_mining_withdrawal'
 )
+
+# AdsGram: إعلان مكافأة إجباري قبل شراء/ترقية العمال.
+# لو ADSGRAM_BLOCK_ID فاضي، الشرط بيتعطّل (تطوير محلي أو قبل التفعيل).
+ADSGRAM_BLOCK_ID = os.getenv('ADSGRAM_BLOCK_ID', '')
+ADSGRAM_REWARD_SECRET = os.getenv('ADSGRAM_REWARD_SECRET', '')
+ADSGRAM_SESSION_TTL_SECONDS = int(
+    os.getenv('ADSGRAM_SESSION_TTL_SECONDS', '600')
+)
+
+# Redis / Celery: كل إشعارات البوت بتمشي على طابور مهام خارج السيرفر.
+REDIS_URL = os.getenv('REDIS_URL', 'redis://127.0.0.1:6379/0')
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', REDIS_URL)
+CELERY_TASK_IGNORE_RESULT = True
+CELERY_TASK_ALWAYS_EAGER = os.getenv(
+    'CELERY_TASK_ALWAYS_EAGER', 'False'
+).lower() == 'true'
+CELERY_TASK_EAGER_PROPAGATES = True
+CELERY_TASK_ACKS_LATE = True
+CELERY_TASK_REJECT_ON_WORKER_LOST = True
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 
 LOGGING = {
